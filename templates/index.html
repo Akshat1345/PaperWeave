@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="search-section">
+    <div class="search-form">
+        <h3 class="mb-3"><i class="fas fa-search"></i> Start Your Research</h3>
+        <form id="research-form">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="topic" class="form-label">Research Topic</label>
+                        <input type="text" class="form-control" id="topic" name="topic" 
+                               placeholder="e.g., machine learning, quantum computing, climate change..." required>
+                        <div class="form-text">Enter keywords related to your research area</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="num_papers" class="form-label">Number of Papers</label>
+                        <select class="form-control" id="num_papers" name="num_papers">
+                            <option value="3">3 papers</option>
+                            <option value="5" selected>5 papers</option>
+                            <option value="10">10 papers</option>
+                            <option value="15">15 papers</option>
+                            <option value="20">20 papers</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket"></i> Start Research
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="status-section" class="hidden">
+    <div class="status-card">
+        <div class="d-flex align-items-center mb-3">
+            <div class="spinner status-icon">
+                <i class="fas fa-cog fa-spin"></i>
+            </div>
+            <h4 class="mb-0">Processing Your Request</h4>
+        </div>
+        
+        <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+                <span id="current-step">Initializing...</span>
+                <span id="progress-text">0%</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     id="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="row text-center">
+            <div class="col-md-4">
+                <h5 id="total-papers">0</h5>
+                <small class="text-muted">Total Papers</small>
+            </div>
+            <div class="col-md-4">
+                <h5 id="processed-papers">0</h5>
+                <small class="text-muted">Processed</small>
+            </div>
+            <div class="col-md-4">
+                <h5 id="current-paper">-</h5>
+                <small class="text-muted">Current Paper</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="results-section" class="hidden">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="fas fa-file-alt"></i> Research Results</h3>
+        <button id="download-btn" class="btn btn-success">
+            <i class="fas fa-download"></i> Download Results
+        </button>
+    </div>
+    <div id="results-container"></div>
+</div>
+
+<div id="error-section" class="hidden">
+    <div class="status-card error-card">
+        <h4><i class="fas fa-exclamation-triangle"></i> Error</h4>
+        <p id="error-message"></p>
+        <button class="btn btn-primary" onclick="location.reload()">
+            <i class="fas fa-redo"></i> Try Again
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let statusInterval;
+
+document.getElementById('research-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    startResearch();
+});
+
+document.getElementById('download-btn').addEventListener('click', function() {
+    window.location.href = '/download_results';
+});
+
+function startResearch() {
+    const topic = document.getElementById('topic').value;
+    const numPapers = document.getElementById('num_papers').value;
+    
+    if (!topic.trim()) {
+        alert('Please enter a research topic');
+        return;
+    }
+    
+    // Hide search form and show status
+    document.getElementById('search-section').classList.add('hidden');
+    document.getElementById('status-section').classList.remove('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('error-section').classList.add('hidden');
+    
+    // Start processing
+    fetch('/start_processing', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            topic: topic,
+            num_papers: parseInt(numPapers)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showError(data.error);
+        } else {
+            // Start status polling
+            statusInterval = setInterval(checkStatus, 2000);
+        }
+    })
+    .catch(error => {
+        showError('Failed to start processing: ' + error.message);
+    });
+}
+
+function checkStatus() {
+    fetch('/status')
+        .then(response => response.json())
+        .then(data => {
+            updateStatus(data);
+            
+            if (!data.is_processing) {
+                clearInterval(statusInterval);
+                if (data.results && data.results.length > 0) {
+                    showResults();
+                } else if (data.current_step.includes('Error')) {
+                    showError(data.current_step);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Status check failed:', error);
+            clearInterval(statusInterval);
+            showError('Lost connection to server');
+        });
+}
+
+function updateStatus(data) {
+    document.getElementById('current-step').textContent = data.current_step;
+    document.getElementById('progress-text').textContent = Math.round(data.progress) + '%';
+    document.getElementById('progress-bar').style.width = data.progress + '%';
+    document.getElementById('total-papers').textContent = data.total_papers;
+    document.getElementById('processed-papers').textContent = data.processed_papers;
+    
+    const currentPaper = data.current_paper || '-';
+    const truncated = currentPaper.length > 50 ? currentPaper.substring(0, 50) + '...' : currentPaper;
+    document.getElementById('current-paper').textContent = truncated;
+}
+
+function showResults() {
+    document.getElementById('status-section').classList.add('hidden');
+    document.getElementById('results-section').classList.remove('hidden');
+    
+    fetch('/results')
+        .then(response => response.json())
+        .then(data => {
+            displayResults(data.results, data.summary);
+        })
+        .catch(error => {
+            showError('Failed to load results: ' + error.message);
+        });
+}
+
+function displayResults(results, summary) {
+    const container = document.getElementById('results-container');
+    container.innerHTML = '';
+    
+    // Summary card
+    const summaryCard = document.createElement('div');
+    summaryCard.className = 'results-card';
+    summaryCard.innerHTML = `
+        <h4><i class="fas fa-chart-bar"></i> Summary</h4>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h5>${summary.total_papers}</h5>
+                <small class="text-muted">Papers Requested</small>
+            </div>
+            <div class="col-md-3">
+                <h5>${summary.processed_papers}</h5>
+                <small class="text-muted">Successfully Processed</small>
+            </div>
+            <div class="col-md-3">
+                <h5>${summary.topic}</h5>
+                <small class="text-muted">Topic</small>
+            </div>
+            <div class="col-md-3">
+                <h5>${summary.processing_time || 'N/A'}</h5>
+                <small class="text-muted">Processing Time</small>
+            </div>
+        </div>
+    `;
+    container.appendChild(summaryCard);
+    
+    // Individual papers
+    results.forEach((paper, index) => {
+        const paperCard = createPaperCard(paper, index + 1);
+        container.appendChild(paperCard);
+    });
+}
+
+function createPaperCard(paper, index) {
+    const card = document.createElement('div');
+    card.className = 'results-card fade-in';
+    
+    if (paper.status === 'failed') {
+        card.innerHTML = `
+            <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                <h5 class="paper-title mb-0">Paper ${index}: ${paper.metadata?.title || 'Unknown'}</h5>
+            </div>
+            <p class="text-danger">Processing failed: ${paper.error}</p>
+        `;
+        return card;
+    }
+    
+    const metadata = paper.metadata || {};
+    const processing = paper.processing_info || {};
+    const sections = paper.sections_summary || {};
+    
+    let sectionsHtml = '';
+    for (const [sectionName, summary] of Object.entries(sections)) {
+        if (summary && summary.trim()) {
+            sectionsHtml += `
+                <div class="section-summary">
+                    <h6><i class="fas fa-bookmark"></i> ${sectionName}</h6>
+                    <p class="mb-0">${summary}</p>
+                </div>
+            `;
+        }
+    }
+    
+    card.innerHTML = `
+        <div class="d-flex align-items-center mb-2">
+            <i class="fas fa-file-alt text-success me-2"></i>
+            <h5 class="paper-title mb-0">Paper ${index}: ${metadata.title || 'Unknown Title'}</h5>
+        </div>
+        
+        <div class="paper-meta">
+            <strong>Authors:</strong> ${(metadata.authors || []).join(', ') || 'Unknown'}<br>
+            <strong>ArXiv ID:</strong> ${metadata.arxiv_id || 'Unknown'}<br>
+            <strong>Categories:</strong> ${(metadata.categories || []).join(', ') || 'Unknown'}<br>
+            <strong>Sections Found:</strong> ${processing.sections_found || 0} | 
+            <strong>Tables:</strong> ${processing.tables_found || 0} | 
+            <strong>Images:</strong> ${processing.images_found || 0}
+        </div>
+        
+        ${metadata.abstract ? `
+            <div class="section-summary">
+                <h6><i class="fas fa-info-circle"></i> Abstract</h6>
+                <p class="mb-0">${metadata.abstract}</p>
+            </div>
+        ` : ''}
+        
+        ${sectionsHtml || '<p class="text-muted">No section summaries available</p>'}
+    `;
+    
+    return card;
+}
+
+function showError(message) {
+    clearInterval(statusInterval);
+    document.getElementById('search-section').classList.add('hidden');
+    document.getElementById('status-section').classList.add('hidden');
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('error-section').classList.remove('hidden');
+    document.getElementById('error-message').textContent = message;
+}
+</script>
+{% endblock %}

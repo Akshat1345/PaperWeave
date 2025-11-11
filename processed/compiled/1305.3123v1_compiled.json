@@ -1,0 +1,323 @@
+{
+  "metadata": {
+    "title": "Performance Analysis of Embarassingly Parallel Application on Cluster   Computer Environment: A Case Study of Virtual Screening with Autodock Vina   1.1 on Hastinapura Cluster",
+    "authors": [
+      "Muhammad Hilman",
+      "Heru Suhartanto",
+      "Arry Yanuar"
+    ],
+    "abstract": "IT based scientific research requires high computational resources. The limitation on funding and infrastructure led the high performance computing era from supercomputer to cluster and grid computing technology. Parallel application running well on cluster computer as well as supercomputer, one of the type is embarrassingly parallel application. Many scientist loves EP because it doesn't need any sophisticated technique but gives amazing performance. This paper discuss the bioinformatics research that used embarrassingly application and show its performance on cluster computer.",
+    "published": "",
+    "arxiv_id": "1305.3123v1",
+    "categories": [
+      "cs.DC"
+    ],
+    "pdf_url": "http://arxiv.org/pdf/1305.3123v1",
+    "pdf_file": "data/pdfs/1305.3123v1.pdf",
+    "pdf_filename": "1305.3123v1.pdf"
+  },
+  "processing_info": {
+    "processed_at": "2025-11-11T10:33:07.552894",
+    "is_large_pdf": false,
+    "sections_found": 9,
+    "tables_found": 6,
+    "images_found": 2
+  },
+  "sections_text": {
+    "Abstract": "high computational resources. The limitaton on funding and infrastructure led the high performance computing era from supercomputer to cluster and grid computing technology. Parallel application running well on cluster computer as well as supercomputer, one of the type is embarassingly parallel application. Many scientist loves EP because it doesn’t need any sophisticated",
+    "Methodology": "paper discusses the bionformatics research that used embarassingly parallel application and show its performance on cluster computer. I. I NTRODUCTION HE great invention on information and technology has changed the research paradigm on many field. The researchers used virtual experiment on IT to get more accurate result and to reduce the cost of experiment. However, many problems comes when many scientist try to use the computer modeling to build virtual laboratory. Sophisticated of mathematics model, limitation funding and research infrastructure, and the most annoying problem is limitation of computational resources to get the information result as soon as posible. A. Need of High Performance Computing Science and engineering problems need many computational resources get the relevant Manuscript received October 10, 2010. This work was part of the project on drug design research collaboration between Faculty of Computer Science and Department of Pharmacy, Faculty of Mathematics and Natural Sciences, Universitas Indonesia Muhammad H. Hilman is a master student on computer science at Faculty of Computer Science, Universitas Indonesia, Depok,",
+    "16424 Indonesia": "Heru Suhartanto is a professor on parallel computing at Faculty of Computer Science, Universitas Indonesia, Depok, Indonesia. (e-mail: heru@cs.ui.ac.id). Arry Yanuar is a researcher on biomolecular and drug design at Department of Pharmacy, Faculty of Mathematics and Natural Sciences, Universitas Indonesia, Depok, Indonesia. (e-mail: arry.yanuar@gmail.com). information on research. For example the polluted concentration substance which modeled with the Differential Ordinarry Equation System 𝜕𝑐 𝑠 𝜕𝑡 = − 𝜕𝑢𝑐 𝑠 𝜕𝑥 + 𝜕𝑣𝑐 𝑠 𝜕𝑦 + 𝜕𝑤𝑐 𝑠 𝜕𝑧 + 𝜕(𝐾 𝑥 𝜕𝑐 𝑠 𝜕𝑥 𝜕(𝐾 𝑦 𝜕𝑐 𝑠 𝜕𝑦 + 𝜕(𝐾 𝑧 𝜕𝑐 𝑠 𝜕𝑧 + 𝐸 𝑠 𝜃, 𝑡 − 𝑘 1𝑠 + 𝑘 2𝑠 𝑐 𝑠 𝜃,𝑡 + 𝑅 𝑠 (𝑐 ,… .. , 𝑐 𝑞 ) (1) where s = 1, ....., q; c s (θ,t) is concentration of pollutant s at the space θ; then u(θ,t), v(θ,t), and x(θ,t) is the wind velocity along the x, y, and z axis; E s (θ,t) states the emission on space point θ and time t for pollutant s; k 1s and k 2s are coefficient of deposition dry and wet; K(θ,t) states difusion coefficient along three coordinate axis; and R s states the chemical reaction related to component s [1,2]. This mathematics model has been researched by Denmark Pollution Laboratory using q = 29. If axis grid used is x = 32, y = 32, and z = 9, it results 267, equations that have to be solved in each integration step along time scale to know the variation each month to get actual information of pollution. This sophisticated equation can only be solved by computers that have very large computational resources . B. Cost and Infrastructure Limitation High computational resource that can solve the sophisticated problems like the differential ordiner equations above can only received supercomputer infrastructure (ex: Cray X-MP, CDC, Illiac-IV) some decades ago. Limitation of integrated circuit (IC) and processor development; and growing research on networks and protocols has been stimulating the new technology of high performance computer. The new one is cluster and grid computing technology . Actually, the concepts aren‟t literally new. When IT researcher try to develop high performance computer in the first place, they already thought the possibility of cluster and grid based computer but at that time the protocols and networks security isn‟t advance as now Application on Cluster Computer Environment : A Case Study of Virtual Screening with Autodock Vina 1. on Hastinapura Cluster Muhammad H. Hilman , Heru Suhartanto and Arry Yanuar Faculty of Computer Science, Universitas Indonesia",
+    "2 Department of Pharmacy, Faculty of Mathematics and Natural Sciences, Universitas Indonesia": "Email: muhammad.hilman@ui.ac.id, heru@cs.ui.ac.id, arry.yanuar@gmail.com on. So they began their research on supercomputer technology that specifically building special computer with special compilers that able to run parallel application to solve any problems that need high performance coputational roseources . The development cost actually got significant aspect developing those technologies. Supercomputer infrastructures are quite expensive to build but cluster and grid technology isn‟t that high in comparison. Building cluster and grid computers relatively cheap. It has motivated many researchers not only in the third world country but also in the whole world trying to implement cluster and grid computer to help their scientific computation as part of their research activity. C. Paper Structure In this paper we will discuss the performance on embarrassingly parallel application as one of the parallelization method that run on cluster computer infrastructure called „hastinapura‟ in Universitas Indonesia. The paper will describe the introduction as well as the background behind research in the section",
+    "1. Section 2 will describe the hardware and software": "architecture of our cluster „hastinapura‟. The overview of parallel computation will be described in the section as well as the term embarrassingly parallel application. Section will show the result of bioinformatics case that embarrassingly parallel on cluster „hastinapura‟. The last section is discussing conclusion our works and many future opportunities to do research on this field. II. H ASTINAPURA C LUSTER C OMPUTER A RCHITECTURE A. Hardware Infrastructure Hastinapura cluster consist of one head node, one grid portal node, one storage node and worker nodes . Head node is the main key of the cluster technology. All of the cluster management is done by middleware that put on this server. The head node specifications are listed below, Table 1. Head node machine spesification Machine Type Sun Fire X2100 Processor AMD Opteron 2. GHz Memory",
+    "2 GB": "Hard Disk x GB Operating System GNU/Linux Debian 4. B. Software Infrastructure Hastinapura cluster uses Globus Toolkit as middleware that handle all the software management above the machine. Globus Toolkit can manage different cluster with different machine to one grid system. Above Globus Toolkit, hastinapura uses Sun Grid Engine as a job submission and cluster resources management. MPICH is provided in hastinapura to support the MPI-based parallel application that run on the cluster . Many applications has been deployed hastinapura cluster to support research activities in Universitas Indonesia. Some of the applications are mpiBlast, sequence allignment in bioinformatics that based on MPI; GROMACS, molecular dynamic simulation software; and MPI-POV-Ray, optical modelling for object-ray interaction . III. E MBARASSINGLY P ARALLEL P ARADIGM There are many paradigms to do parallel programming. One of the most favourite paradigm based on its easyness and less sophisticated control is message passing paradigm. Message passing requires the programmer to handle parallel aspect of the codes when doing the programming. The message passing paradigm generally divided into three kind of programs . First, embarassingly parallel paradigm. It has virtually no communication required; easily load balanced; and it has perfect speedup. Second, regular and synchronous. It easily statically load balanced; expect good speedup for nonlocal comunication; and expect reasonable speedupfor non-local communication. Third, irregular and/or asynchronous. It is difficult to load balance; communication overhead usually high; and usually can‟t be done efficiently using data parallel programming. A. EP Problems Embarassingly parallel problems has unique criteria that can easily being distinguishad. Many real world problem can be define into EP problems. Here are the EP problems criteria Machine Type Sun Fire X2100 Processor AMD Opteron 2. GHz Memory Hard Disk Machine Type Intel PC Processor Dual Intel Xeon 2. GHz (HT) Memory independently of the others. the final result. any kind of distribution since communication is not a factor. form approach.",
+    "5. Expect perfect speedup": "Here are some illustration on how the very simple EP problems modelled. Fig 2. Disconnected computational graph . More advanced EP problems based on master-slave concept of job tasking. Fig 3. EP problems with dynamic process creation and the masterslave approach . B. EP Performance Measurement Performance measurement on EP application is quite simple since no communication overhead involved. The formula for measuring the speedup is 𝑠𝑝𝑒𝑒𝑑𝑢𝑝= 𝑡𝑖𝑚𝑒 𝑜𝑛 𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑜𝑟 𝑡𝑖𝑚𝑒 𝑜𝑛 𝑁 𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑜𝑟𝑠 and the formula for measuring the efficiency of the EP application is 𝑒𝑓𝑓𝑖𝑐𝑖𝑒𝑛𝑐𝑦= 𝑠𝑝𝑒𝑒𝑑𝑢𝑝 To measure the EP application doesn‟t need the function that calculate some overhead involved in the process such as used in Amdahl‟s Law . C. EP Cases There are many sample cases that already defined. Here are some sample on EP cases Farms.",
+    "5. Random Number Generation": "and many cases on bioinformatics that just easily perform as submitting many jobs with different parameter and different data type. In this paper we will use one of the bioinformatics case for showing the EP. The problems is molecular docking and virtual screening. IV. B IOINFORMATICS C ASE A. Molecular Docking and Virtual Screening Molecular docking is a computational procedure that attempts to predict noncovalent binding of macromolecules. The goal is to predict the bound conformations and the binding affinity . The prediction process is based on information that embedded inside the chemical bond of substance. One of the method to calculate energy that related to binding affinity aspect is AMBER (Assisted Model Building with Energy Refinement) force fields 𝑉 𝑟 𝑁 = 𝑘 𝑏 (𝑙−𝑙 ) 𝑏𝑜𝑛𝑑𝑠 + 𝑘 𝑎 (𝜃−𝜃 ) 𝑎𝑛𝑔𝑙𝑒𝑠 𝑉 𝑛 [ + 𝑐𝑜𝑠(𝜂𝜔−𝛾)] 𝑡𝑜𝑟𝑠𝑖𝑜𝑛𝑠 + {𝜖 𝑖,𝑗 𝜎 𝑖,𝑗 𝑟 𝑖,𝑗 − 𝜎 𝑖,𝑗 𝑟 𝑖,𝑗 𝑖=𝑗+ 𝑁− 𝑗= 𝑞 𝑖 𝑞 𝑗 4𝜋𝜖 𝑟 𝑖,𝑗 Eq 2. AMBER force fields formula where Σbonds states the distance aspect that represented by l and l ; Σangles states the angles aspect between chemical bond represented by θ and θ ; Σtorsions states the active torsion aspect; and Σij shows the non-covalent chemical bond in the substance . Virtual Screening is molecular docking process that involved large database of chemical compound. We can say that virtual screening is a lot of molecular docking process to get the best molecule to become drug candidate. It‟s important to say that this simulation is not the only one method to get the drug candidates, practical laboratory experiment is the one to do that. This virtual experiment used to process large number of substance to produce small number of best drug candidates which cannot be done manually due large number of data. The key to parallelization process in molecular docking lies on this aspect, „big number of molecular docking jobs‟. B. Autodock Vina 1. Autodock Vina is molecular docking software that developed by The Scripps Research Institute, nonprofit biomedical research from San Diego, California, USA. Autodock Vina is the next generation of molecular docking engine after The Scripps Research Institute released Autodock in the first place. Autodock Vina gives transparent user point of view in using molecular docking parameters. User doesn‟t have to do many script programming for adjusting the parameters, Autodock Vina has provided simple library that users can only put the desired parameter on docking process. The Scripps Research Institute claimed that Autodock Vina has better performance than Autodock. This claim proved by their experimental performance that published together with the Autodock Vina software news and update in the journal of computational chemistry . The most important from Autodock Vina is the application can run on multicore machine. Autodock Vina has implemented hyper threading concept that run perfectly on a machine that has more than one processor. But the hard point in this paper is not the capability of Autodock Vina running on multicore machine; we will discuss the input problem of virtual screening in Autodock Vina that has very likely type with EP problems. C. Experimental Result Here we will show the result of virtual screening experiment that uses Autodock Vina on hastinapura. The ligand database uses in this experiment was taken from ZINC (ZINC Is Not Commercial) Database in the mol2 format and the receptor was taken from PDB (Protein Data Bank) Database in the pdb format. We process both the input to the pdbqt format and begin the virtual screening process after setting some parameters on both ligands and receptor. We do the experiment on two different system to get comparison how is the performance. First, we experiment on sequential paradigm by running it locally on PC desktop with the specification as listed below Table 5. PC desktop machine spesification PC desktop Machine Spesification Machine Type Intel PC Processor Pentium IV, 2. GHz Memory",
+    "80 GB": "Operating System GNU/Linux Ubuntu 8. Second, we run the parallel experiment in the hastinapura cluster using qsub job submission script that used in Sun Grid Engine. The cluster machine specification is discussed in the section before. We use different numbers of data in these two different machines to get the information about speedup and efficiency. The experimental show the result as follows Table 6. Experimental result Data Execution Time (minutes) Serial Parallel 2277. 77. 4629. 159. 8117. 292. 12370. 406. 15294. 509. Fig 4. Experimental result (general) From the table and diagram above we can see that running time is accelerated 29. times. We also can conclude that speed up on this experiment is 29. times because serial experiment is done on machine with one cpu. Beside the running time and speed up, the efficiency can be calculated from information we got. Efficiency of the experiment is 91%, almost linier. We just can see it clearly from two diagrams below about the linierity of the experiment. These three diagrams and one table show clearly that performance of embarassingly parallel application is generally linier and give good result on speed up and efficiency. 2277. 4629. 8117. 12370. 15294. 77. 159. 292. 406. 509. Serial Paralel Fig 5. Experimental result (parallel) Fig 6. Experimental result (serial) Fig 5., and fig 6. Show the linierity of virtual screening experiment that run on the hastinapura cluster computer. V. C ONCLUSION AND F UTURE W ORKS A. Conclusion Scientific research with the spesific problems that can be divide into many jobs which does not have high dependencies in each proces can be define into embarassingly parallel problems. EP problems runs well on cluster computer environment that can be build the substitution supercomputer infrasturcture. EP has became favorite between researchers that need large computational resources. EP gives very nice result on cluster computer environment. It show good speed up and efficiency regarding general performance of application. B. Future Works The open research problem on this area is concerned on the hardware of cluster infrastructure. Simple explanation on EP is the application submitting many jobs concurently, but actually the job submission engine and the machine itself exploited too much on running this application. So, it will become big problem if there is some interruption on job submission or the machine itself. The new software and hardware configuration for cluster computer environment should be designed well to handle that problems. A CKNOWLEDGMENT We would like to thank directorate of research and social service of Universitas Indonesia that already gave financial support on the whole project of biomolecular and drug design computational research using hastinapura cluster computer in Universitas Indonesia. R EFERENCES H. Suhartanto, “Parallel Iterated Techniques based on Multistep Runge-Kutta Methods of Radau Types” (Ph.D thesis), University of Queensland, Australia, 1998. Z. Zlatev, R. Berkowicz, Numerical Treatment of Large-scale Air Pollutant Models (Book style) . Comput. Math. Applic., pp. 93–109. 1998. B. Nazief,”RI-Grid: Usulan Pengembangan Infrastruktur komputasi Grid nasional” (Published Conference Proceedings Style), in Proc. E-Indonesia Initiatives , Bandung. May 2006. J. Santoso, G.D. Van Albada, B. Nazief, P.M.A. Sloot, “Hierarchical Job Scheduling for Cluster of Workstation”, (Published Conference Proceedings Style) in Proc. The th Annual Conference on the Advanced School for Computing and Imaging , pp. 99-105, ASCI, Delft, Netherland, June 2000. Grid Research Group, “Hastinapura” (Online), Faculty of Computer Science, Universitas Indonesia. Available : Grid Research Group, “Manual Penggunaan Aplikasi dalam inGrid” (Online), Faculty of Computer Science, Universitas Indonesia. Available aplikasi.pdf P.Coddington, “Message Passing Programming and MPI” (Lecture Notes), Distributed & High Performance Computing Group, Department of Computer Science, Uniersity of Adelaide. June 2002. B. Wilkinson, M. Allen, Parallel Programming: Techniques and Applications using Networked Workstations and Parallel Computers (Book Style). Prentice Hall. 1999. P.Coddington, “Programing and Performance Analysis of Parallel Computers” (Lecture Notes), Distributed & High Performance Computing Group, Department of Computer Science, Uniersity of Adelaide. June 2002. O. Trott, A.J. Olson, “Autodock Vina : Improving The Speed and Accuracy of Docking with a New Scoring Function, Efficient, Optimization, and Mutithreading” (Journal Online Sources Style), Journal of Computational Chemistry pp 455. 2010. Cornell WD, Cieplak P, Bayly CI, Gould IR, Merz KM Jr, Ferguson DM, Spellmeyer DC, Fox T, Caldwell JW, Kollman PA. “A Second Generation of Force Fields for The Simulation of Proteins, Nucleic Acids, and Organic Molecules”. J. Am. Chem. Soc . 117: – 5197. May, 2001. 77. 159. 292. 406. 509. Paralel 2277. 4629. 8117. 12370. 15294. Serial"
+  },
+  "sections_summary": {
+    "Abstract": "The transition from supercomputers to cluster and grid computing was driven by limited funding and infrastructure. Cluster computers can run parallel applications that were also suitable for supercomputers, including \"embarrassingly parallel\" ones.",
+    "Methodology": "Researchers use virtual experiments with IT to get more accurate results and reduce costs. However, many problems arise when multiple scientists try to use computer modeling for building virtual laboratories due to limitations in mathematical models, funding, research infrastructure, and computational resources. High-performance computing is necessary for scientific engineering problems that require large amounts of computation time.",
+    "16424 Indonesia": "Heru Suhartanto is a professor at Universitas Indonesia, researching parallel computing, while Arry Yanuar is a researcher in biomolecular and drug design.\n\nA mathematical model for pollution concentration uses the Differential Ordinary Equation System to simulate pollutant concentrations in space and time. The model has 29 equations that require large computational resources, making it unsolvable by conventional computers.\n\nHigh-performance computing was previously limited by supercomputer infrastructure, but advancements in integrated circuits and processor development have led to cluster and grid computing technology.",
+    "2 Department of Pharmacy, Faculty of Mathematics and Natural Sciences, Universitas Indonesia": "Researchers developed supercomputer technology using special compilers to run parallel applications, but building a supercomputer is expensive. In contrast, building cluster and grid computers is relatively cheap. This has motivated researchers worldwide to implement cluster and grid computing for scientific computation, with many implementing it in both third-world countries and the whole world.",
+    "1. Section 2 will describe the hardware and software": "Hastinapura cluster consists of one head node, grid portal node, storage node, and worker nodes. The head node is the main hub for cluster technology, with middleware managing all cluster operations. It has specifications listed in Table 1: Sun Fire X2100 processor, AMD Opteron 2. GHz, and memory.",
+    "2 GB": "The Hastinapura cluster uses Globus Toolkit, Sun Grid Engine, and MPICH to manage software, job submission, and parallel computing resources for various research applications, including bioinformatics and molecular dynamics simulations. The cluster also employs the message passing paradigm in parallel programming, which is divided into three categories: embarrassingly parallel, regular/synchronous, and irregular/asynchronous paradigms. Embarassingly parallel problems have unique criteria that can be easily distinguished, making them ideal for certain types of real-world problems.",
+    "5. Expect perfect speedup": "EP problems can be modeled using a disconnected computational graph and/or the master-slave concept of job tasking with dynamic process creation. Performance measurement is simple as it doesn't involve communication overhead, calculated by speedup (measure of time spent) or efficiency (speedup measure). Examples of EP cases include farms with predefined cases.",
+    "5. Random Number Generation": "Here is a concise overall summary:\n\nMolecular docking and virtual screening are computational methods used to predict noncovalent binding of macromolecules. A software tool called Autodock Vina has improved performance compared to its predecessor, offering transparent user control over parameters and support for mult-core machines with hyper-threading technology. This enables efficient parallel processing of large numbers of molecular docking jobs. In a recent virtual screening experiment using Autodock Vina, two systems were compared: one running sequentially on a PC desktop with specific specifications, while the other utilized the software's capabilities to optimize performance.",
+    "80 GB": "Here is a concise overall summary:\n\nThis study demonstrates the effectiveness of cluster computing in accelerating execution time by 29 times, achieving 91% efficiency, with performance scaling linearly across varying data sizes and job numbers. The findings support the suitability of embarrassingly parallel applications for cluster environments. A range of sources from 1999 to 2010 were consulted, including research papers and lecture notes on parallel computing techniques, message passing programming, and high-performance computing methodologies, highlighting the growing importance of cluster computing in optimizing computational performance."
+  },
+  "tables": [
+    {
+      "page": 2,
+      "table_index": 0,
+      "content": [
+        [
+          "",
+          "Grid Portal Node Machine Spesification",
+          null,
+          ""
+        ],
+        [
+          "Machine Type",
+          null,
+          "Sun Fire X2100",
+          null
+        ],
+        [
+          "Processor",
+          null,
+          "AMD Opteron 2.2 GHz",
+          null
+        ],
+        [
+          "Memory",
+          null,
+          "2 GB",
+          null
+        ],
+        [
+          "Operating System",
+          null,
+          "GNU/Linux Debian 3.1",
+          null
+        ]
+      ]
+    },
+    {
+      "page": 2,
+      "table_index": 1,
+      "content": [
+        [
+          "",
+          "Grid Portal Node Machine Spesification",
+          null,
+          ""
+        ],
+        [
+          "Machine Type",
+          null,
+          "Sun Fire X2100",
+          null
+        ],
+        [
+          "Processor",
+          null,
+          "AMD Opteron 2.2 GHz",
+          null
+        ],
+        [
+          "Memory",
+          null,
+          "1 GB",
+          null
+        ],
+        [
+          "Operating System",
+          null,
+          "GNU/Linux Debian 3.1",
+          null
+        ]
+      ]
+    },
+    {
+      "page": 2,
+      "table_index": 2,
+      "content": [
+        [
+          "",
+          "Storage Node Machine Spesification",
+          null,
+          ""
+        ],
+        [
+          "Machine Type",
+          null,
+          "Intel PC",
+          null
+        ],
+        [
+          "Processor",
+          null,
+          "Dual Intel Xeon 2.8 GHz (HT)",
+          null
+        ],
+        [
+          "Memory",
+          null,
+          "2 GB",
+          null
+        ],
+        [
+          "Hard Disk",
+          null,
+          "3 x 320 GB",
+          null
+        ],
+        [
+          "Operating System",
+          null,
+          "GNU/Linux Debian 4.2",
+          null
+        ]
+      ]
+    },
+    {
+      "page": 2,
+      "table_index": 3,
+      "content": [
+        [
+          "",
+          "Head Node Machine Spesification",
+          null,
+          ""
+        ],
+        [
+          "Machine Type",
+          null,
+          "Sun Fire X2100",
+          null
+        ],
+        [
+          "Processor",
+          null,
+          "AMD Opteron 2.2 GHz",
+          null
+        ],
+        [
+          "Memory",
+          null,
+          "2 GB",
+          null
+        ],
+        [
+          "Operating System",
+          null,
+          "GNU/Linux Debian 3.1",
+          null
+        ]
+      ]
+    },
+    {
+      "page": 4,
+      "table_index": 0,
+      "content": [
+        [
+          "",
+          "PC desktop Machine Spesification",
+          null,
+          ""
+        ],
+        [
+          "Machine Type",
+          null,
+          "Intel PC",
+          null
+        ],
+        [
+          "Processor",
+          null,
+          "Pentium IV, 2.00 GHz",
+          null
+        ],
+        [
+          "Memory",
+          null,
+          "1 GB",
+          null
+        ],
+        [
+          "Hard Disk",
+          null,
+          "80 GB",
+          null
+        ],
+        [
+          "Operating System",
+          null,
+          "GNU/Linux Ubuntu 8.0",
+          null
+        ]
+      ]
+    },
+    {
+      "page": 4,
+      "table_index": 1,
+      "content": [
+        [
+          "",
+          "Data",
+          "",
+          "",
+          "Execution Time (minutes)",
+          null,
+          null,
+          ""
+        ],
+        [
+          "",
+          null,
+          null,
+          "",
+          "Serial",
+          "",
+          "Parallel",
+          ""
+        ],
+        [
+          "1000",
+          null,
+          null,
+          "2277.42",
+          null,
+          null,
+          "77.43",
+          null
+        ],
+        [
+          "2000",
+          null,
+          null,
+          "4629.72",
+          null,
+          null,
+          "159.5",
+          null
+        ],
+        [
+          "3000",
+          null,
+          null,
+          "8117.6",
+          null,
+          null,
+          "292.27",
+          null
+        ],
+        [
+          "4000",
+          null,
+          null,
+          "12370.5",
+          null,
+          null,
+          "406.8",
+          null
+        ],
+        [
+          "5000",
+          null,
+          null,
+          "15294.2",
+          null,
+          null,
+          "509.8",
+          null
+        ]
+      ]
+    }
+  ],
+  "images": [
+    "processed/images/1305.3123v1_page3_img0.png",
+    "processed/images/1305.3123v1_page3_img1.png"
+  ],
+  "status": "completed"
+}
