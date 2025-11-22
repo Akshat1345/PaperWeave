@@ -1,303 +1,479 @@
-{% extends "base.html" %}
-
-{% block content %}
-<div id="search-section">
-    <div class="search-form">
-        <h3 class="mb-3"><i class="fas fa-search"></i> Start Your Research</h3>
-        <form id="research-form">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="mb-3">
-                        <label for="topic" class="form-label">Research Topic</label>
-                        <input type="text" class="form-control" id="topic" name="topic" 
-                               placeholder="e.g., machine learning, quantum computing, climate change..." required>
-                        <div class="form-text">Enter keywords related to your research area</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="mb-3">
-                        <label for="num_papers" class="form-label">Number of Papers</label>
-                        <select class="form-control" id="num_papers" name="num_papers">
-                            <option value="3">3 papers</option>
-                            <option value="5" selected>5 papers</option>
-                            <option value="10">10 papers</option>
-                            <option value="15">15 papers</option>
-                            <option value="20">20 papers</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="fas fa-rocket"></i> Start Research
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="status-section" class="hidden">
-    <div class="status-card">
-        <div class="d-flex align-items-center mb-3">
-            <div class="spinner status-icon">
-                <i class="fas fa-cog fa-spin"></i>
-            </div>
-            <h4 class="mb-0">Processing Your Request</h4>
-        </div>
-        
-        <div class="mb-3">
-            <div class="d-flex justify-content-between mb-1">
-                <span id="current-step">Initializing...</span>
-                <span id="progress-text">0%</span>
-            </div>
-            <div class="progress">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                     id="progress-bar" role="progressbar" style="width: 0%"></div>
-            </div>
-        </div>
-        
-        <div class="row text-center">
-            <div class="col-md-4">
-                <h5 id="total-papers">0</h5>
-                <small class="text-muted">Total Papers</small>
-            </div>
-            <div class="col-md-4">
-                <h5 id="processed-papers">0</h5>
-                <small class="text-muted">Processed</small>
-            </div>
-            <div class="col-md-4">
-                <h5 id="current-paper">-</h5>
-                <small class="text-muted">Current Paper</small>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="results-section" class="hidden">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3><i class="fas fa-file-alt"></i> Research Results</h3>
-        <button id="download-btn" class="btn btn-success">
-            <i class="fas fa-download"></i> Download Results
-        </button>
-    </div>
-    <div id="results-container"></div>
-</div>
-
-<div id="error-section" class="hidden">
-    <div class="status-card error-card">
-        <h4><i class="fas fa-exclamation-triangle"></i> Error</h4>
-        <p id="error-message"></p>
-        <button class="btn btn-primary" onclick="location.reload()">
-            <i class="fas fa-redo"></i> Try Again
-        </button>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-let statusInterval;
-
-document.getElementById('research-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    startResearch();
-});
-
-document.getElementById('download-btn').addEventListener('click', function() {
-    window.location.href = '/download_results';
-});
-
-function startResearch() {
-    const topic = document.getElementById('topic').value;
-    const numPapers = document.getElementById('num_papers').value;
-    
-    if (!topic.trim()) {
-        alert('Please enter a research topic');
-        return;
-    }
-    
-    // Hide search form and show status
-    document.getElementById('search-section').classList.add('hidden');
-    document.getElementById('status-section').classList.remove('hidden');
-    document.getElementById('results-section').classList.add('hidden');
-    document.getElementById('error-section').classList.add('hidden');
-    
-    // Start processing
-    fetch('/start_processing', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            topic: topic,
-            num_papers: parseInt(numPapers)
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            showError(data.error);
-        } else {
-            // Start status polling
-            statusInterval = setInterval(checkStatus, 2000);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-    })
-    .catch(error => {
-        showError('Failed to start processing: ' + error.message);
-    });
-}
 
-function checkStatus() {
-    fetch('/status')
-        .then(response => response.json())
-        .then(data => {
-            updateStatus(data);
-            
-            if (!data.is_processing) {
-                clearInterval(statusInterval);
-                if (data.results && data.results.length > 0) {
-                    showResults();
-                } else if (data.current_step.includes('Error')) {
-                    showError(data.current_step);
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Status check failed:', error);
-            clearInterval(statusInterval);
-            showError('Lost connection to server');
-        });
-}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
 
-function updateStatus(data) {
-    document.getElementById('current-step').textContent = data.current_step;
-    document.getElementById('progress-text').textContent = Math.round(data.progress) + '%';
-    document.getElementById('progress-bar').style.width = data.progress + '%';
-    document.getElementById('total-papers').textContent = data.total_papers;
-    document.getElementById('processed-papers').textContent = data.processed_papers;
-    
-    const currentPaper = data.current_paper || '-';
-    const truncated = currentPaper.length > 50 ? currentPaper.substring(0, 50) + '...' : currentPaper;
-    document.getElementById('current-paper').textContent = truncated;
-}
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
 
-function showResults() {
-    document.getElementById('status-section').classList.add('hidden');
-    document.getElementById('results-section').classList.remove('hidden');
-    
-    fetch('/results')
-        .then(response => response.json())
-        .then(data => {
-            displayResults(data.results, data.summary);
-        })
-        .catch(error => {
-            showError('Failed to load results: ' + error.message);
-        });
-}
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
 
-function displayResults(results, summary) {
-    const container = document.getElementById('results-container');
-    container.innerHTML = '';
-    
-    // Summary card
-    const summaryCard = document.createElement('div');
-    summaryCard.className = 'results-card';
-    summaryCard.innerHTML = `
-        <h4><i class="fas fa-chart-bar"></i> Summary</h4>
-        <div class="row text-center">
-            <div class="col-md-3">
-                <h5>${summary.total_papers}</h5>
-                <small class="text-muted">Papers Requested</small>
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .status-text {
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .results-container {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-container.active {
+            display: block;
+        }
+
+        .paper-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .paper-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .paper-title {
+            color: #667eea;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .paper-authors {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .paper-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .paper-abstract {
+            color: #555;
+            line-height: 1.6;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .download-button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .download-button:hover {
+            background: #218838;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 AI Research Assistant</h1>
+        <p class="subtitle">Search, analyze, and understand research papers with AI</p>
+
+        <form id="searchForm">
+            <div class="form-group">
+                <label for="topic">Research Topic</label>
+                <input 
+                    type="text" 
+                    id="topic" 
+                    placeholder="e.g., transformer neural networks"
+                    required
+                >
             </div>
-            <div class="col-md-3">
-                <h5>${summary.processed_papers}</h5>
-                <small class="text-muted">Successfully Processed</small>
+
+            <div class="form-group">
+                <label for="numPapers">Number of Papers (1-20)</label>
+                <input 
+                    type="number" 
+                    id="numPapers" 
+                    min="1" 
+                    max="20" 
+                    value="5"
+                    required
+                >
             </div>
-            <div class="col-md-3">
-                <h5>${summary.topic}</h5>
-                <small class="text-muted">Topic</small>
+
+            <button type="submit" class="button" id="submitBtn">
+                🚀 Start Processing
+            </button>
+        </form>
+
+        <div class="status-container" id="statusContainer">
+            <div class="status-text" id="statusText">Initializing...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
             </div>
-            <div class="col-md-3">
-                <h5>${summary.processing_time || 'N/A'}</h5>
-                <small class="text-muted">Processing Time</small>
-            </div>
+            <div id="currentPaper" style="color: #666; font-size: 0.9em; margin-top: 10px;"></div>
         </div>
-    `;
-    container.appendChild(summaryCard);
-    
-    // Individual papers
-    results.forEach((paper, index) => {
-        const paperCard = createPaperCard(paper, index + 1);
-        container.appendChild(paperCard);
-    });
-}
 
-function createPaperCard(paper, index) {
-    const card = document.createElement('div');
-    card.className = 'results-card fade-in';
-    
-    if (paper.status === 'failed') {
-        card.innerHTML = `
-            <div class="d-flex align-items-center mb-2">
-                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                <h5 class="paper-title mb-0">Paper ${index}: ${paper.metadata?.title || 'Unknown'}</h5>
-            </div>
-            <p class="text-danger">Processing failed: ${paper.error}</p>
-        `;
-        return card;
-    }
-    
-    const metadata = paper.metadata || {};
-    const processing = paper.processing_info || {};
-    const sections = paper.sections_summary || {};
-    
-    let sectionsHtml = '';
-    for (const [sectionName, summary] of Object.entries(sections)) {
-        if (summary && summary.trim()) {
-            sectionsHtml += `
-                <div class="section-summary">
-                    <h6><i class="fas fa-bookmark"></i> ${sectionName}</h6>
-                    <p class="mb-0">${summary}</p>
+        <div class="results-container" id="resultsContainer">
+            <h2 style="color: #667eea; margin-bottom: 20px;">📚 Results</h2>
+            <div id="resultsContent"></div>
+            <button class="download-button" id="downloadBtn">
+                📥 Download All Results
+            </button>
+        </div>
+
+        <div id="errorContainer"></div>
+    </div>
+
+    <script>
+        let statusCheckInterval;
+        let currentJobId = null;
+
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const topic = document.getElementById('topic').value;
+            const numPapers = document.getElementById('numPapers').value;
+            
+            // Reset UI
+            document.getElementById('statusContainer').classList.add('active');
+            document.getElementById('resultsContainer').classList.remove('active');
+            document.getElementById('errorContainer').innerHTML = '';
+            document.getElementById('submitBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/start_processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ topic, num_papers: parseInt(numPapers) })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentJobId = data.job_id;
+                    startStatusChecking();
+                } else {
+                    showError(data.error || 'Failed to start processing');
+                    document.getElementById('submitBtn').disabled = false;
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+                document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        function startStatusChecking() {
+            // Check status every 2 seconds
+            statusCheckInterval = setInterval(checkStatus, 2000);
+            checkStatus(); // Check immediately
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                
+                // Check if processing is complete
+                if (!data.is_processing || data.is_processing === false) {
+                    clearInterval(statusCheckInterval);
+                    
+                    // Wait a moment then load results
+                    setTimeout(() => {
+                        loadResults();
+                    }, 1000);
+                    return;
+                }
+                
+                // Update progress
+                const progress = data.progress || 0;
+                const statusText = data.current_step || 'Processing...';
+                
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressFill').textContent = Math.round(progress) + '%';
+                document.getElementById('statusText').textContent = statusText;
+                
+                // Show current paper if available
+                if (data.current_paper) {
+                    document.getElementById('currentPaper').textContent = 
+                        `Current: ${data.current_paper}`;
+                }
+                
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+
+        async function loadResults() {
+            try {
+                const response = await fetch('/results');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayResults(data.results);
+                    document.getElementById('statusContainer').classList.remove('active');
+                    document.getElementById('resultsContainer').classList.add('active');
+                    document.getElementById('submitBtn').disabled = false;
+                    
+                    showSuccess(`Successfully processed ${data.summary.total_papers} papers!`);
+                } else {
+                    showError('Failed to load results');
+                }
+            } catch (error) {
+                showError('Error loading results: ' + error.message);
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('resultsContent');
+            container.innerHTML = '';
+            
+            results.forEach((paper, index) => {
+                const metadata = paper.metadata || {};
+                const contributions = paper.contributions || {};
+                
+                const card = document.createElement('div');
+                card.className = 'paper-card';
+                
+                const statusBadge = paper.status === 'completed' 
+                    ? '<span class="badge badge-success">✓ Completed</span>'
+                    : '<span class="badge badge-warning">⚠ Processing Issue</span>';
+                
+                const citations = metadata.citation_count 
+                    ? `<span class="badge badge-info">📊 ${metadata.citation_count} citations</span>`
+                    : '';
+                
+                card.innerHTML = `
+                    <div class="paper-title">${index + 1}. ${metadata.title || 'Unknown Title'}</div>
+                    <div class="paper-authors">
+                        👥 ${Array.isArray(metadata.authors) ? metadata.authors.slice(0, 3).join(', ') : 'Unknown'}
+                        ${Array.isArray(metadata.authors) && metadata.authors.length > 3 ? ' et al.' : ''}
+                    </div>
+                    <div class="paper-meta">
+                        ${statusBadge}
+                        ${citations}
+                        <span class="badge badge-info">📄 ${metadata.arxiv_id || 'N/A'}</span>
+                    </div>
+                    ${metadata.abstract ? `
+                        <div class="paper-abstract">
+                            <strong>Abstract:</strong> ${metadata.abstract.substring(0, 300)}...
+                        </div>
+                    ` : ''}
+                    ${contributions.main_problem ? `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <strong style="color: #667eea;">🎯 Key Contribution:</strong><br>
+                            ${contributions.main_problem}
+                        </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `
+                <div class="error-message">
+                    <strong>❌ Error:</strong> ${message}
                 </div>
             `;
         }
-    }
-    
-    card.innerHTML = `
-        <div class="d-flex align-items-center mb-2">
-            <i class="fas fa-file-alt text-success me-2"></i>
-            <h5 class="paper-title mb-0">Paper ${index}: ${metadata.title || 'Unknown Title'}</h5>
-        </div>
-        
-        <div class="paper-meta">
-            <strong>Authors:</strong> ${(metadata.authors || []).join(', ') || 'Unknown'}<br>
-            <strong>ArXiv ID:</strong> ${metadata.arxiv_id || 'Unknown'}<br>
-            <strong>Categories:</strong> ${(metadata.categories || []).join(', ') || 'Unknown'}<br>
-            <strong>Sections Found:</strong> ${processing.sections_found || 0} | 
-            <strong>Tables:</strong> ${processing.tables_found || 0} | 
-            <strong>Images:</strong> ${processing.images_found || 0}
-        </div>
-        
-        ${metadata.abstract ? `
-            <div class="section-summary">
-                <h6><i class="fas fa-info-circle"></i> Abstract</h6>
-                <p class="mb-0">${metadata.abstract}</p>
-            </div>
-        ` : ''}
-        
-        ${sectionsHtml || '<p class="text-muted">No section summaries available</p>'}
-    `;
-    
-    return card;
-}
 
-function showError(message) {
-    clearInterval(statusInterval);
-    document.getElementById('search-section').classList.add('hidden');
-    document.getElementById('status-section').classList.add('hidden');
-    document.getElementById('results-section').classList.add('hidden');
-    document.getElementById('error-section').classList.remove('hidden');
-    document.getElementById('error-message').textContent = message;
-}
-</script>
-{% endblock %}
+        function showSuccess(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `
+                <div class="success-message">
+                    <strong>✅ Success:</strong> ${message}
+                </div>
+            `;
+        }
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            window.location.href = '/download_results' + (currentJobId ? `?job_id=${currentJobId}` : '');
+        });
+    </script>
+</body>
+</html>

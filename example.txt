@@ -1,1 +1,50 @@
 http://export.arxiv.org/api/query?search_query=all:deep+learning&start=0&max_results=5&sortBy=relevance
+
+
+┌─────────────────────────────────────────────────────────────┐
+│                    USER ASKS QUESTION                        │
+│  "What are the main challenges in deep learning training?"  │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  VECTOR SEARCH ENGINE                        │
+│  • Embeds question into vector space                         │
+│  • Searches across ALL paper sections                        │
+│  • Retrieves top-k most relevant passages                    │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   KNOWLEDGE GRAPH                            │
+│  • Paper → Paper relationships (citations)                   │
+│  • Concept → Concept relationships (shared methods)          │
+│  • Author → Paper relationships                              │
+│  • Research Gap aggregation                                  │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  CONTEXT ENRICHMENT                          │
+│  • Combines retrieved passages                               │
+│  • Adds graph context (related papers, concepts)             │
+│  • Ranks by relevance                                        │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│               LLM ANSWER GENERATION                          │
+│  • Synthesizes answer from multiple sources                  │
+│  • Cites specific papers and sections                        │
+│  • Identifies consensus vs. disagreement                     │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    FINAL ANSWER                              │
+│  "Deep learning training faces three main challenges:        │
+│   1. Vanishing gradients (Paper #3, Section 2.1)            │
+│   2. Overfitting on small datasets (Papers #1, #5)          │
+│   3. Computational cost (Paper #2, Section 4)               │
+│   Papers #1 and #5 propose similar regularization..."       │
+└─────────────────────────────────────────────────────────────┘

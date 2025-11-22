@@ -1,71 +1,145 @@
-# modules/scraper.py - FIXED VERSION
+# modules/scraper.py - IMPROVED ArXiv Scraper
 import requests
 import os
 import time
 import xml.etree.ElementTree as ET
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus
 import feedparser
+from typing import List, Dict, Optional
+from config import config
+from modules.utils import (
+    logger, get_organized_pdf_path, is_valid_arxiv_id, 
+    is_valid_pdf, format_file_size, ProgressTracker
+)
 
 class ArxivScraper:
-    def __init__(self, output_folder):
+    """
+    Enhanced ArXiv scraper with:
+    - Advanced query building
+    - Citation metrics from Semantic Scholar
+    - Better deduplication
+    - Organized storage
+    """
+    
+    def __init__(self, output_folder: str):
         self.output_folder = output_folder
         self.pdfs_folder = os.path.join(output_folder, 'pdfs')
         os.makedirs(self.pdfs_folder, exist_ok=True)
         
-        # Use the correct arXiv API base URL
-        self.base_url = "http://export.arxiv.org/api/query"
+        self.base_url = config.ARXIV_BASE_URL
         
         # Request session with proper headers
         self.session = requests.Session()
         self.session.headers.update({
-            'User-Agent': 'AI Research Assistant/1.0 (Educational Project)',
+            'User-Agent': 'AI Research Assistant/2.0 (Educational Project)',
             'Accept': 'application/atom+xml'
         })
+        
+        logger.info("ArxivScraper initialized")
     
-    def search_and_download(self, query, max_results=5):
-        """Search arXiv and download papers using direct API calls."""
-        print(f"🔍 Searching arXiv for: '{query}'")
+    def build_query(self, query: str, filters: Optional[Dict] = None) -> str:
+        """
+        Build advanced arXiv query with filters.
+        
+        Args:
+            query: Base search query
+            filters: Optional filters (author, category, year, etc.)
+        
+        Returns:
+            URL-encoded query string
+        
+        Examples:
+            - Simple: "machine learning"
+            - With author: query="neural networks", filters={"author": "Goodfellow"}
+            - With category: query="transformers", filters={"category": "cs.AI"}
+            - With year: query="GPT", filters={"year": 2023}
+        """
+        search_parts = [f'all:{query}']
+        
+        if filters:
+            if filters.get('author'):
+                search_parts.append(f'au:{filters["author"]}')
+            
+            if filters.get('category'):
+                search_parts.append(f'cat:{filters["category"]}')
+            
+            if filters.get('year'):
+                year = filters['year']
+                search_parts.append(f'submittedDate:[{year}0101 TO {year}1231]')
+            
+            if filters.get('title_keywords'):
+                search_parts.append(f'ti:{filters["title_keywords"]}')
+        
+        combined_query = ' AND '.join(search_parts)
+        return quote_plus(combined_query)
+    
+    def search_and_download(self, query: str, max_results: int = 5, 
+                          filters: Optional[Dict] = None, 
+                          fetch_citations: bool = True) -> List[Dict]:
+        """
+        Search arXiv and download papers with enhanced metadata.
+        
+        Args:
+            query: Search query
+            max_results: Maximum number of papers
+            filters: Optional search filters
+            fetch_citations: Whether to fetch citation counts
+        
+        Returns:
+            List of paper metadata dictionaries
+        """
+        logger.info(f"🔍 Searching arXiv for: '{query}' (max_results={max_results})")
+        
+        if filters:
+            logger.info(f"   Filters: {filters}")
         
         try:
-            # Method 1: Try with feedparser (more reliable)
-            papers_metadata = self.search_with_feedparser(query, max_results)
+            # Try feedparser method first
+            papers_metadata = self.search_with_feedparser(query, max_results, filters)
             
             if not papers_metadata:
-                # Method 2: Fallback to direct requests
-                print("📡 Trying alternative method...")
-                papers_metadata = self.search_with_requests(query, max_results)
+                logger.warning("📡 Feedparser failed, trying alternative method...")
+                papers_metadata = self.search_with_requests(query, max_results, filters)
             
             if not papers_metadata:
-                print("❌ No papers found with either method")
+                logger.error("❌ No papers found with either method")
                 return []
             
-            print(f"✅ Found {len(papers_metadata)} papers")
+            # Deduplicate
+            papers_metadata = self.deduplicate_papers(papers_metadata)
+            
+            # Enrich with citation data
+            if fetch_citations and config.ENABLE_CITATION_FETCH:
+                papers_metadata = self.enrich_with_citations(papers_metadata)
+            
+            logger.info(f"✅ Successfully retrieved {len(papers_metadata)} papers")
             return papers_metadata
             
         except Exception as e:
-            print(f"❌ Error in arXiv search: {e}")
+            logger.error(f"❌ Error in arXiv search: {e}", exc_info=True)
             return []
     
-    def search_with_feedparser(self, query, max_results):
-        """Use feedparser library for more reliable parsing."""
+    def search_with_feedparser(self, query: str, max_results: int, 
+                              filters: Optional[Dict] = None) -> List[Dict]:
+        """Search using feedparser (more reliable)."""
         try:
-            # Construct search URL
-            search_query = quote_plus(query)
-            url = f"{self.base_url}?search_query=all:{search_query}&start=0&max_results={max_results}&sortBy=relevance&sortOrder=descending"
+            search_query = self.build_query(query, filters)
+            url = (f"{self.base_url}?search_query={search_query}&start=0"
+                   f"&max_results={max_results}&sortBy=relevance&sortOrder=descending")
             
-            print(f"📡 Fetching from: {url}")
+            logger.debug(f"📡 Fetching from: {url}")
             
-            # Parse feed
             feed = feedparser.parse(url)
             
             if not hasattr(feed, 'entries') or not feed.entries:
-                print("❌ No entries found in feed")
+                logger.warning("No entries found in feed")
                 return []
             
             papers_metadata = []
+            progress = ProgressTracker(len(feed.entries[:max_results]), "Downloading papers")
             
             for i, entry in enumerate(feed.entries[:max_results]):
-                print(f"📄 Processing paper {i+1}/{len(feed.entries[:max_results])}: {entry.title}")
+                logger.info(f"📄 Processing paper {i+1}/{min(len(feed.entries), max_results)}: {entry.title[:60]}...")
                 
                 # Extract metadata
                 metadata = {
@@ -75,8 +149,13 @@ class ArxivScraper:
                     'published': getattr(entry, 'published', ''),
                     'arxiv_id': entry.id.split('/')[-1] if hasattr(entry, 'id') else f'unknown_{i}',
                     'categories': [tag.term for tag in getattr(entry, 'tags', [])],
-                    'pdf_url': None
+                    'pdf_url': None,
+                    'source': 'arxiv'
                 }
+                
+                # Validate arXiv ID
+                if not is_valid_arxiv_id(metadata['arxiv_id']):
+                    logger.warning(f"⚠️  Invalid arXiv ID: {metadata['arxiv_id']}")
                 
                 # Find PDF link
                 for link in getattr(entry, 'links', []):
@@ -84,57 +163,55 @@ class ArxivScraper:
                         metadata['pdf_url'] = link.href
                         break
                 
-                # Fallback PDF URL construction
-                if not metadata['pdf_url'] and hasattr(entry, 'id'):
+                # Fallback PDF URL
+                if not metadata['pdf_url']:
                     paper_id = entry.id.split('/')[-1]
                     metadata['pdf_url'] = f"https://arxiv.org/pdf/{paper_id}.pdf"
                 
+                # Download PDF with organized storage
                 if metadata['pdf_url']:
-                    # Download PDF
-                    pdf_filename = f"{metadata['arxiv_id'].replace('/', '_').replace(':', '_')}.pdf"
-                    pdf_path = os.path.join(self.pdfs_folder, pdf_filename)
+                    pdf_path = get_organized_pdf_path(query, metadata['arxiv_id'])
                     
                     if self.download_pdf(metadata['pdf_url'], pdf_path):
                         metadata['pdf_file'] = pdf_path
-                        metadata['pdf_filename'] = pdf_filename
+                        metadata['pdf_filename'] = os.path.basename(pdf_path)
+                        metadata['pdf_size'] = format_file_size(os.path.getsize(pdf_path))
                         papers_metadata.append(metadata)
-                        print(f"✅ Downloaded: {pdf_filename}")
+                        logger.info(f"✅ Downloaded: {os.path.basename(pdf_path)} ({metadata['pdf_size']})")
                     else:
-                        print(f"❌ Failed to download: {metadata['title'][:50]}...")
+                        logger.error(f"❌ Failed to download: {metadata['title'][:50]}...")
                 
-                # Rate limiting
-                time.sleep(1)
+                progress.update()
+                time.sleep(config.ARXIV_RATE_LIMIT_DELAY)
             
+            progress.complete()
             return papers_metadata
             
         except Exception as e:
-            print(f"❌ Feedparser method failed: {e}")
+            logger.error(f"❌ Feedparser method failed: {e}", exc_info=True)
             return []
     
-    def search_with_requests(self, query, max_results):
-        """Alternative method using direct requests."""
+    def search_with_requests(self, query: str, max_results: int, 
+                            filters: Optional[Dict] = None) -> List[Dict]:
+        """Fallback: Direct XML parsing."""
         try:
-            # Construct search URL
-            search_query = quote_plus(query)
-            url = f"{self.base_url}?search_query=all:{search_query}&start=0&max_results={max_results}&sortBy=relevance&sortOrder=descending"
+            search_query = self.build_query(query, filters)
+            url = (f"{self.base_url}?search_query={search_query}&start=0"
+                   f"&max_results={max_results}&sortBy=relevance&sortOrder=descending")
             
-            print(f"📡 Direct request to: {url}")
+            logger.debug(f"📡 Direct request to: {url}")
             
-            # Make request with proper handling
             response = self.session.get(url, timeout=30, allow_redirects=True)
             response.raise_for_status()
             
-            # Parse XML
             root = ET.fromstring(response.content)
-            
-            # Define namespace
             ns = {'atom': 'http://www.w3.org/2005/Atom', 
                   'arxiv': 'http://arxiv.org/schemas/atom'}
             
             entries = root.findall('atom:entry', ns)
             
             if not entries:
-                print("❌ No entries found in XML response")
+                logger.warning("No entries found in XML response")
                 return []
             
             papers_metadata = []
@@ -144,9 +221,8 @@ class ArxivScraper:
                     title_elem = entry.find('atom:title', ns)
                     title = title_elem.text.replace('\n', ' ').strip() if title_elem is not None else f"Unknown Title {i}"
                     
-                    print(f"📄 Processing paper {i+1}: {title[:50]}...")
+                    logger.info(f"📄 Processing paper {i+1}: {title[:50]}...")
                     
-                    # Extract metadata
                     metadata = {
                         'title': title,
                         'authors': [],
@@ -154,7 +230,8 @@ class ArxivScraper:
                         'published': '',
                         'arxiv_id': f'paper_{i}',
                         'categories': [],
-                        'pdf_url': None
+                        'pdf_url': None,
+                        'source': 'arxiv'
                     }
                     
                     # Extract authors
@@ -188,81 +265,80 @@ class ArxivScraper:
                             metadata['pdf_url'] = link.get('href')
                             break
                     
-                    # Fallback PDF URL
                     if not metadata['pdf_url']:
                         metadata['pdf_url'] = f"https://arxiv.org/pdf/{metadata['arxiv_id']}.pdf"
                     
                     # Download PDF
-                    if metadata['pdf_url']:
-                        pdf_filename = f"{metadata['arxiv_id'].replace('/', '_').replace(':', '_')}.pdf"
-                        pdf_path = os.path.join(self.pdfs_folder, pdf_filename)
-                        
-                        if self.download_pdf(metadata['pdf_url'], pdf_path):
-                            metadata['pdf_file'] = pdf_path
-                            metadata['pdf_filename'] = pdf_filename
-                            papers_metadata.append(metadata)
-                            print(f"✅ Downloaded: {pdf_filename}")
-                        else:
-                            print(f"❌ Failed to download: {title[:50]}...")
+                    pdf_path = get_organized_pdf_path(query, metadata['arxiv_id'])
                     
-                    # Rate limiting
-                    time.sleep(1.5)
+                    if self.download_pdf(metadata['pdf_url'], pdf_path):
+                        metadata['pdf_file'] = pdf_path
+                        metadata['pdf_filename'] = os.path.basename(pdf_path)
+                        papers_metadata.append(metadata)
+                        logger.info(f"✅ Downloaded: {os.path.basename(pdf_path)}")
+                    
+                    time.sleep(config.ARXIV_RATE_LIMIT_DELAY)
                     
                 except Exception as e:
-                    print(f"❌ Error processing entry {i}: {e}")
+                    logger.error(f"❌ Error processing entry {i}: {e}")
                     continue
             
             return papers_metadata
             
         except Exception as e:
-            print(f"❌ Direct requests method failed: {e}")
+            logger.error(f"❌ Direct requests method failed: {e}", exc_info=True)
             return []
     
-    def download_pdf(self, url, filepath, max_retries=3):
-        """Download PDF with improved error handling."""
+    def download_pdf(self, url: str, filepath: str, max_retries: int = None) -> bool:
+        """Download PDF with retry logic and validation."""
+        max_retries = max_retries or config.PDF_MAX_RETRIES
+        
+        # Skip if file already exists and is valid
+        if os.path.exists(filepath) and is_valid_pdf(filepath):
+            logger.info(f"📦 PDF already exists: {os.path.basename(filepath)}")
+            return True
+        
         for attempt in range(max_retries):
             try:
-                print(f"📥 Downloading attempt {attempt + 1}: {os.path.basename(filepath)}")
+                logger.debug(f"📥 Download attempt {attempt + 1}/{max_retries}")
                 
-                # Use session for consistent headers
-                response = self.session.get(url, timeout=45, stream=True, allow_redirects=True)
+                response = self.session.get(
+                    url, 
+                    timeout=config.PDF_DOWNLOAD_TIMEOUT, 
+                    stream=True, 
+                    allow_redirects=True
+                )
                 response.raise_for_status()
                 
-                # Check if it's actually a PDF
+                # Check content type
                 content_type = response.headers.get('content-type', '').lower()
                 if 'pdf' not in content_type and 'octet-stream' not in content_type:
-                    print(f"⚠️  Warning: Unexpected content type: {content_type}")
+                    logger.warning(f"⚠️  Unexpected content type: {content_type}")
                 
                 # Write file
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
                 with open(filepath, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         if chunk:
                             f.write(chunk)
                 
-                # Verify file size and basic PDF structure
-                file_size = os.path.getsize(filepath)
-                if file_size < 1000:  # Less than 1KB
-                    print(f"❌ File too small ({file_size} bytes)")
-                    os.remove(filepath)
+                # Validate downloaded file
+                if not is_valid_pdf(filepath):
+                    logger.error(f"❌ Downloaded file is not a valid PDF")
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
                     continue
                 
-                # Basic PDF validation
-                with open(filepath, 'rb') as f:
-                    header = f.read(8)
-                    if not header.startswith(b'%PDF'):
-                        print(f"❌ Not a valid PDF file")
-                        os.remove(filepath)
-                        continue
-                
-                print(f"✅ Successfully downloaded ({file_size:,} bytes)")
+                file_size = os.path.getsize(filepath)
+                logger.debug(f"✅ Download successful ({format_file_size(file_size)})")
                 return True
                 
             except requests.exceptions.Timeout:
-                print(f"⏰ Download timeout (attempt {attempt + 1})")
+                logger.warning(f"⏰ Download timeout (attempt {attempt + 1})")
             except requests.exceptions.RequestException as e:
-                print(f"🌐 Network error (attempt {attempt + 1}): {e}")
+                logger.warning(f"🌐 Network error (attempt {attempt + 1}): {e}")
             except Exception as e:
-                print(f"❌ Download error (attempt {attempt + 1}): {e}")
+                logger.error(f"❌ Download error (attempt {attempt + 1}): {e}")
             
             # Clean up partial file
             if os.path.exists(filepath):
@@ -272,9 +348,83 @@ class ArxivScraper:
                     pass
             
             if attempt < max_retries - 1:
-                wait_time = 2 ** attempt  # Exponential backoff
-                print(f"⏳ Waiting {wait_time}s before retry...")
+                wait_time = 2 ** attempt
+                logger.info(f"⏳ Waiting {wait_time}s before retry...")
                 time.sleep(wait_time)
         
-        print(f"❌ Failed to download after {max_retries} attempts")
+        logger.error(f"❌ Failed to download after {max_retries} attempts")
         return False
+    
+    def deduplicate_papers(self, papers_metadata: List[Dict]) -> List[Dict]:
+        """
+        Remove duplicate papers based on arXiv ID.
+        
+        Args:
+            papers_metadata: List of paper metadata
+        
+        Returns:
+            Deduplicated list
+        """
+        seen_ids = set()
+        unique_papers = []
+        duplicates_removed = 0
+        
+        for paper in papers_metadata:
+            arxiv_id = paper.get('arxiv_id')
+            if arxiv_id not in seen_ids:
+                seen_ids.add(arxiv_id)
+                unique_papers.append(paper)
+            else:
+                duplicates_removed += 1
+                logger.debug(f"⚠️  Skipping duplicate: {paper['title'][:50]}...")
+        
+        if duplicates_removed > 0:
+            logger.info(f"🧹 Removed {duplicates_removed} duplicate papers")
+        
+        return unique_papers
+    
+    def enrich_with_citations(self, papers_metadata: List[Dict]) -> List[Dict]:
+        """
+        Fetch citation counts from Semantic Scholar.
+        
+        Args:
+            papers_metadata: List of paper metadata
+        
+        Returns:
+            Enriched paper metadata with citation counts
+        """
+        logger.info("📊 Fetching citation metrics from Semantic Scholar...")
+        
+        for paper in papers_metadata:
+            try:
+                arxiv_id = paper.get('arxiv_id')
+                if not arxiv_id or not is_valid_arxiv_id(arxiv_id):
+                    continue
+                
+                url = f"{config.SEMANTIC_SCHOLAR_API}/paper/arXiv:{arxiv_id}"
+                params = {'fields': 'citationCount,influentialCitationCount,year'}
+                
+                response = requests.get(url, params=params, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    paper['citation_count'] = data.get('citationCount', 0)
+                    paper['influential_citation_count'] = data.get('influentialCitationCount', 0)
+                    logger.debug(f"   {paper['title'][:40]}: {paper['citation_count']} citations")
+                elif response.status_code == 404:
+                    logger.debug(f"   Paper not found in Semantic Scholar: {arxiv_id}")
+                    paper['citation_count'] = 0
+                    paper['influential_citation_count'] = 0
+                else:
+                    logger.debug(f"   Could not fetch citations for {arxiv_id}: {response.status_code}")
+                    paper['citation_count'] = 0
+                    paper['influential_citation_count'] = 0
+                
+                time.sleep(0.5)  # Rate limiting
+                
+            except Exception as e:
+                logger.debug(f"   Citation fetch error for {paper.get('title', 'Unknown')}: {e}")
+                paper['citation_count'] = 0
+                paper['influential_citation_count'] = 0
+        
+        return papers_metadata

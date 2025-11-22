@@ -1,7 +1,38 @@
-Flask==2.3.3
-arxiv==1.4.8
-PyMuPDF==1.23.8
+# requirements.txt
+# Tested and optimized for Python 3.10
+# Installation: pip install -r requirements.txt
+
+# ========== CORE DEPENDENCIES ==========
+
+# Web Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# PDF Processing
+PyMuPDF==1.23.8  # fitz
 pdfplumber==0.10.3
-requests==2.31.0
-ollama==0.1.9
+
+# ArXiv API & Web
 feedparser==6.0.10
+requests==2.31.0
+urllib3==2.1.0
+
+# LLM Integration
+ollama==0.1.6
+
+# Utilities
+python-dateutil==2.8.2
+
+# ========== PRODUCTION (Optional) ==========
+gunicorn==21.2.0
+
+# ========== DEVELOPMENT (Optional) ==========
+pytest==7.4.3
+pytest-cov==4.1.0
+black==23.12.1
+flake8==6.1.0
+
+# ========== FOR FUTURE RAG (Will add in Phase 2) ==========
+# sentence-transformers==2.2.2
+# chromadb==0.4.18
+# langchain==0.1.0
