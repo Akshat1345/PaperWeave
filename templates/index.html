@@ -300,6 +300,57 @@
             <button class="download-button" id="downloadBtn">
                 📥 Download All Results
             </button>
+            
+            <!-- RAG Query Interface -->
+            <div style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 15px;">
+                <h3 style="color: #667eea; margin-bottom: 20px;">🤖 Ask Questions About Your Research</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Ask anything about the papers you've processed. The AI will search across all papers and provide answers with citations.
+                </p>
+                
+                <div class="form-group">
+                    <label for="ragQuestion">Your Question</label>
+                    <input 
+                        type="text" 
+                        id="ragQuestion" 
+                        placeholder="e.g., What are the main challenges in deep learning training?"
+                    >
+                </div>
+                
+                <button class="button" id="askBtn" style="margin-top: 10px;">
+                    🔍 Ask AI
+                </button>
+                
+                <div id="ragAnswerContainer" style="margin-top: 20px; display: none;">
+                    <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
+                        <h4 style="color: #667eea; margin-bottom: 10px;">💡 Answer:</h4>
+                        <div id="ragAnswer" style="line-height: 1.8; color: #333;"></div>
+                        
+                        <div id="ragSources" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+                            <h5 style="color: #667eea; margin-bottom: 10px;">📖 Sources:</h5>
+                            <div id="ragSourcesList"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Research Overview -->
+                <div style="margin-top: 30px;">
+                    <button class="button" id="summaryBtn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        📊 Generate Research Overview
+                    </button>
+                    
+                    <button class="button" id="reindexBtn" style="margin-left: 10px; background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);">
+                        🔄 Reindex All Papers
+                    </button>
+                    
+                    <div id="summaryContainer" style="margin-top: 20px; display: none;">
+                        <div style="background: white; padding: 20px; border-radius: 10px;">
+                            <h4 style="color: #f5576c; margin-bottom: 15px;">📊 Research Landscape Overview</h4>
+                            <div id="summaryContent" style="line-height: 1.8; color: #333;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="errorContainer"></div>
@@ -474,6 +525,173 @@
         document.getElementById('downloadBtn').addEventListener('click', () => {
             window.location.href = '/download_results' + (currentJobId ? `?job_id=${currentJobId}` : '');
         });
+
+        // RAG Query Handler
+        document.getElementById('askBtn').addEventListener('click', async () => {
+            const question = document.getElementById('ragQuestion').value.trim();
+            
+            if (!question) {
+                showError('Please enter a question');
+                return;
+            }
+            
+            console.log('Sending RAG query:', question);
+            
+            document.getElementById('askBtn').disabled = true;
+            document.getElementById('askBtn').textContent = '🤔 Thinking...';
+            document.getElementById('ragAnswerContainer').style.display = 'none';
+            
+            try {
+                const response = await fetch('/rag/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+                
+                console.log('RAG response status:', response.status);
+                const data = await response.json();
+                console.log('RAG response data:', data);
+                
+                if (response.ok) {
+                    if (data.answer) {
+                        displayRagAnswer(data);
+                    } else {
+                        showError('No answer received from server');
+                    }
+                } else {
+                    showError(data.error || 'Failed to get answer');
+                }
+            } catch (error) {
+                console.error('RAG query error:', error);
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('askBtn').disabled = false;
+                document.getElementById('askBtn').textContent = '🔍 Ask AI';
+            }
+        });
+
+        // Allow Enter key to submit
+        document.getElementById('ragQuestion').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('askBtn').click();
+            }
+        });
+
+        // Research Summary Handler
+        document.getElementById('summaryBtn').addEventListener('click', async () => {
+            document.getElementById('summaryBtn').disabled = true;
+            document.getElementById('summaryBtn').textContent = '⏳ Generating...';
+            document.getElementById('summaryContainer').style.display = 'none';
+            
+            try {
+                const response = await fetch('/rag/summary');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displaySummary(data);
+                } else {
+                    showError(data.error || 'Failed to generate summary');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('summaryBtn').disabled = false;
+                document.getElementById('summaryBtn').textContent = '📊 Generate Research Overview';
+            }
+        });
+
+        // Reindex Handler
+        document.getElementById('reindexBtn').addEventListener('click', async () => {
+            if (!confirm('Reindex all papers? This may take a few minutes.')) {
+                return;
+            }
+            
+            document.getElementById('reindexBtn').disabled = true;
+            document.getElementById('reindexBtn').textContent = '🔄 Reindexing...';
+            
+            try {
+                const response = await fetch('/rag/reindex', { method: 'POST' });
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showSuccess(`Reindexed ${data.indexed_count} papers! Total chunks: ${data.total_chunks}`);
+                    
+                    // Show stats
+                    if (data.stats) {
+                        console.log('Vector DB:', data.stats.vector_db);
+                        console.log('Knowledge Graph:', data.stats.knowledge_graph);
+                    }
+                } else {
+                    showError(data.error || 'Reindexing failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('reindexBtn').disabled = false;
+                document.getElementById('reindexBtn').textContent = '🔄 Reindex All Papers';
+            }
+        });
+
+        function displayRagAnswer(data) {
+            const answerContainer = document.getElementById('ragAnswerContainer');
+            const answerDiv = document.getElementById('ragAnswer');
+            const sourcesList = document.getElementById('ragSourcesList');
+            
+            // Display answer with formatting
+            const formattedAnswer = data.answer.replace(/\[Source (\d+)\]/g, 
+                '<sup style="color: #667eea; font-weight: bold;">[Source $1]</sup>');
+            answerDiv.innerHTML = formattedAnswer;
+            
+            // Display sources
+            if (data.sources && data.sources.length > 0) {
+                sourcesList.innerHTML = data.sources.map(source => `
+                    <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                        <strong style="color: #667eea;">[Source ${source.source_number}]</strong>
+                        <div style="margin-top: 5px; color: #333;">
+                            <strong>${source.title}</strong>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                            ArXiv: ${source.arxiv_id} | Section: ${source.section}
+                            | Relevance: ${(source.relevance_score * 100).toFixed(0)}%
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            answerContainer.style.display = 'block';
+            
+            // Smooth scroll to answer
+            answerContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function displaySummary(data) {
+            const summaryContainer = document.getElementById('summaryContainer');
+            const summaryContent = document.getElementById('summaryContent');
+            
+            if (data.summary) {
+                summaryContent.innerHTML = `
+                    <div style="white-space: pre-wrap;">${data.summary}</div>
+                    ${data.statistics ? `
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <h5 style="color: #667eea; margin-bottom: 10px;">📈 Statistics</h5>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                                <div>
+                                    <strong>Total Papers:</strong> ${data.statistics.total_papers || 0}
+                                </div>
+                                <div>
+                                    <strong>Concepts:</strong> ${data.statistics.total_concepts || 0}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                summaryContainer.style.display = 'block';
+                summaryContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
     </script>
 </body>
 </html>

@@ -46,18 +46,41 @@ class Config:
     # Database
     DATABASE_PATH: str = "research_assistant.db"
     
-    # ========== FUTURE: RAG SETTINGS ==========
-    # (Will be used in Phase 2)
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
-    RAG_CHUNK_SIZE: int = 512
-    RAG_CHUNK_OVERLAP: int = 50
-    RAG_TOP_K_RESULTS: int = 5
+    # ========== RAG SETTINGS ==========
+    # Embedding Model
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"  # Fast, 384 dimensions
+    EMBEDDING_DEVICE: str = "cpu"  # or "cuda" if GPU available
     
-    # ========== FUTURE: KNOWLEDGE GRAPH ==========
-    # (Will be used in Phase 3)
-    NEO4J_URI: str = os.getenv('NEO4J_URI', 'bolt://localhost:7687')
-    NEO4J_USER: str = os.getenv('NEO4J_USER', 'neo4j')
-    NEO4J_PASSWORD: str = os.getenv('NEO4J_PASSWORD', 'password')
+    # Vector Database
+    CHROMA_PERSIST_DIR: str = "processed/chroma_db"
+    CHROMA_COLLECTION_NAME: str = "research_papers"
+    
+    # Chunking Strategy
+    CHUNK_SIZE: int = 512  # tokens per chunk
+    CHUNK_OVERLAP: int = 50  # overlap between chunks
+    
+    # Retrieval
+    RAG_TOP_K_RESULTS: int = 10  # Number of chunks to retrieve
+    RAG_SIMILARITY_THRESHOLD: float = 0.10  # Minimum similarity score (10% - filters low relevance)
+    
+    # Answer Generation
+    RAG_MAX_CONTEXT_LENGTH: int = 3000  # Max tokens for LLM context
+    RAG_TEMPERATURE: float = 0.2  # Lower = more factual
+    
+    # ========== KNOWLEDGE GRAPH SETTINGS ==========
+    # Graph Storage
+    GRAPH_DB_PATH: str = "processed/knowledge_graph.db"
+    ENABLE_GRAPH_VISUALIZATION: bool = True
+    GRAPH_EXPORT_DIR: str = "processed/graph_exports"
+    
+    # Relationship Detection
+    MIN_CITATION_SIMILARITY: float = 0.7  # For linking papers
+    EXTRACT_CONCEPTS: bool = True  # Extract key concepts from papers
+    MAX_CONCEPTS_PER_PAPER: int = 10
+    
+    # Graph Analysis
+    ENABLE_CENTRALITY_ANALYSIS: bool = True  # Find influential papers
+    ENABLE_COMMUNITY_DETECTION: bool = True  # Find research clusters
     
     # ========== LOGGING ==========
     LOG_FILE: str = "research_assistant.log"

@@ -3,13 +3,15 @@ from flask import Flask, render_template, request, jsonify, send_file
 import os
 import json
 import threading
-import time
 import zipfile
 from datetime import datetime
 from config import config
 from modules.scraper import ArxivScraper
 from modules.compiler import CompilationAgent
 from modules.database import db
+from modules.vector_db import vector_db
+from modules.knowledge_graph import knowledge_graph
+from modules.rag_engine import rag_engine
 from modules.utils import logger, format_duration
 
 app = Flask(__name__)
@@ -116,9 +118,9 @@ def get_status():
             latest_job = recent_jobs[0]
             return jsonify({
                 'is_processing': False,
-                'status': latest_job['status'],
-                'progress': latest_job['progress'],
-                'current_step': latest_job['current_step'],
+                'status': latest_job.get('status', 'unknown'),
+                'progress': latest_job.get('progress', 0),
+                'current_step': latest_job.get('current_step', 'Completed'),
                 'message': 'Processing completed'
             })
         
@@ -294,7 +296,176 @@ def download_results():
 def get_stats():
     """Get database statistics."""
     stats = db.get_database_stats()
+    
+    # Add RAG statistics
+    vector_stats = vector_db.get_statistics()
+    graph_stats = knowledge_graph.get_statistics()
+    
+    stats['vector_db'] = vector_stats
+    stats['knowledge_graph'] = graph_stats
+    
     return jsonify(stats)
+
+# ========== RAG ENDPOINTS ==========
+
+@app.route('/rag/query', methods=['POST'])
+def rag_query():
+    """
+    Answer a question using RAG.
+    
+    Request body:
+    {
+        "question": "What are the main challenges?",
+        "paper_id": 1  // optional
+    }
+    """
+    try:
+        data = request.json
+        question = data.get('question', '').strip()
+        paper_id = data.get('paper_id')
+        
+        logger.info(f"📝 RAG Query received: '{question}'")
+        
+        if not question:
+            return jsonify({'error': 'Question is required'}), 400
+        
+        # Check if vector DB has data
+        stats = vector_db.get_statistics()
+        if stats.get('total_chunks', 0) == 0:
+            logger.warning("⚠️  Vector DB is empty!")
+            return jsonify({
+                'answer': 'No papers have been indexed yet. Please click "Reindex All Papers" button first.',
+                'sources': [],
+                'confidence': 'low',
+                'error': 'vector_db_empty'
+            })
+        
+        logger.info(f"📊 Vector DB has {stats.get('total_chunks')} chunks from {stats.get('unique_papers')} papers")
+        
+        # Query RAG engine
+        result = rag_engine.query(question, specific_paper_id=paper_id)
+        
+        logger.info(f"✅ RAG query completed: {len(result.get('sources', []))} sources")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"❌ RAG query error: {e}", exc_info=True)
+        return jsonify({
+            'error': str(e),
+            'answer': f'Error processing your question: {str(e)}',
+            'sources': [],
+            'confidence': 'error'
+        }), 500
+
+@app.route('/rag/summary')
+def get_research_summary():
+    """Get overall research summary across all papers."""
+    try:
+        summary = rag_engine.generate_research_summary()
+        return jsonify(summary)
+    except Exception as e:
+        logger.error(f"Summary generation error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rag/related/<int:paper_id>')
+def get_related_papers(paper_id):
+    """Get papers related to a specific paper."""
+    try:
+        related = knowledge_graph.find_related_papers(paper_id, max_results=10)
+        return jsonify({'paper_id': paper_id, 'related_papers': related})
+    except Exception as e:
+        logger.error(f"Error finding related papers: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rag/index_status')
+def get_index_status():
+    """Get indexing status."""
+    try:
+        vector_stats = vector_db.get_statistics()
+        graph_stats = knowledge_graph.get_statistics()
+        db_stats = db.get_database_stats()
+        
+        return jsonify({
+            'vector_db': vector_stats,
+            'knowledge_graph': graph_stats,
+            'database': {
+                'total_papers': db_stats.get('total_papers', 0)
+            },
+            'indexed_percentage': (vector_stats.get('unique_papers', 0) / max(db_stats.get('total_papers', 1), 1)) * 100
+        })
+    except Exception as e:
+        logger.error(f"Error getting index status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/rag/reindex', methods=['POST'])
+def reindex_all():
+    """Reindex all papers (admin function)."""
+    try:
+        logger.info("🔄 Starting manual reindex...")
+        
+        # Get all papers from database
+        jobs = db.get_recent_jobs(limit=100)
+        all_papers = []
+        
+        for job in jobs:
+            job_papers = db.get_papers_by_job(job['id'])
+            all_papers.extend(job_papers)
+        
+        indexed_count = 0
+        total_chunks = 0
+        errors = []
+        
+        for paper in all_papers:
+            if not paper.get('compiled_json_path') or not os.path.exists(paper['compiled_json_path']):
+                continue
+            
+            try:
+                with open(paper['compiled_json_path'], 'r', encoding='utf-8') as f:
+                    paper_data = json.load(f)
+                
+                # Index in vector DB
+                chunks = vector_db.index_paper(paper['id'], paper_data)
+                total_chunks += chunks
+                
+                # Add to knowledge graph
+                knowledge_graph.add_paper(paper['id'], paper_data)
+                
+                # Link citations
+                if paper_data.get('references'):
+                    knowledge_graph.link_citations(paper['id'], paper_data['references'])
+                
+                indexed_count += 1
+                logger.info(f"✅ Indexed paper {paper['id']}: {chunks} chunks")
+                
+            except Exception as e:
+                error_msg = f"Paper {paper['id']}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(f"❌ {error_msg}")
+        
+        # Save knowledge graph
+        knowledge_graph.save_graph()
+        
+        # Get final stats
+        vector_stats = vector_db.get_statistics()
+        graph_stats = knowledge_graph.get_statistics()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Reindexed {indexed_count} papers',
+            'indexed_count': indexed_count,
+            'total_papers': len(all_papers),
+            'total_chunks': total_chunks,
+            'errors': errors,
+            'stats': {
+                'vector_db': vector_stats,
+                'knowledge_graph': graph_stats
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Reindexing error: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # ========== BACKGROUND PROCESSING ==========
 
@@ -405,6 +576,13 @@ def process_papers_background(job_id: int, topic: str, num_papers: int):
         
         db.update_job_status(job_id, 'completed', 100, 
                            f'Completed! Processed {len(papers_metadata)} papers in {processing_time}')
+        
+        # Save knowledge graph to disk
+        try:
+            knowledge_graph.save_graph()
+            logger.info("Knowledge graph saved successfully")
+        except Exception as e:
+            logger.error(f"Error saving knowledge graph: {e}")
         
         logger.info(f"✅ Job {job_id} completed successfully in {processing_time}")
         
