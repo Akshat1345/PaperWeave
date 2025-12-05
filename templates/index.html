@@ -439,18 +439,11 @@
 
         async function loadResults() {
             try {
-                const response = await fetch('/results');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    displayResults(data.results);
-                    document.getElementById('statusContainer').classList.remove('active');
-                    document.getElementById('resultsContainer').classList.add('active');
-                    document.getElementById('submitBtn').disabled = false;
-                    
-                    showSuccess(`Successfully processed ${data.summary.total_papers} papers!`);
+                // Redirect to comprehensive results page
+                if (currentJobId) {
+                    window.location.href = `/results?job_id=${currentJobId}`;
                 } else {
-                    showError('Failed to load results');
+                    window.location.href = '/results';
                 }
             } catch (error) {
                 showError('Error loading results: ' + error.message);

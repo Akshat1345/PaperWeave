@@ -115,11 +115,29 @@ class DatabaseManager:
                 )
             ''')
             
+            # Literature Survey Table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS paper_surveys (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    paper_id INTEGER NOT NULL,
+                    related_work TEXT,
+                    methodology_survey TEXT,
+                    contributions_summary TEXT,
+                    research_gaps TEXT,
+                    context_analysis TEXT,
+                    full_survey_json TEXT,
+                    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (paper_id) REFERENCES papers(id),
+                    UNIQUE(paper_id)
+                )
+            ''')
+            
             # Create indexes for better query performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_papers_arxiv_id ON papers(arxiv_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_papers_job_id ON papers(job_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_sections_paper_id ON paper_sections(paper_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_contributions_paper_id ON paper_contributions(paper_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_surveys_paper_id ON paper_surveys(paper_id)')
             
             conn.commit()
     
@@ -340,6 +358,56 @@ class DatabaseManager:
             stats['avg_citations'] = cursor.fetchone()['avg_citations'] or 0
             
             return stats
+    
+    # ========== SURVEY MANAGEMENT ==========
+    
+    def save_paper_survey(self, paper_id: int, survey: Dict):
+        """Save generated literature survey for a paper."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            survey_sections = survey.get('survey_sections', {})
+            full_survey_json = json.dumps(survey, default=str)
+            
+            cursor.execute('''
+                INSERT OR REPLACE INTO paper_surveys (
+                    paper_id, related_work, methodology_survey, 
+                    contributions_summary, research_gaps, context_analysis, full_survey_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                paper_id,
+                survey_sections.get('related_work', {}).get('content', ''),
+                survey_sections.get('methodology_survey', {}).get('content', ''),
+                survey_sections.get('contributions_summary', {}).get('content', ''),
+                survey_sections.get('research_gaps', {}).get('content', ''),
+                survey_sections.get('context_analysis', {}).get('content', ''),
+                full_survey_json
+            ))
+    
+    def get_paper_survey(self, paper_id: int) -> Optional[Dict]:
+        """Retrieve survey for a specific paper."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM paper_surveys WHERE paper_id = ?', (paper_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                survey_dict = dict(row)
+                if survey_dict.get('full_survey_json'):
+                    survey_dict['survey_data'] = json.loads(survey_dict['full_survey_json'])
+                return survey_dict
+            return None
+    
+    def get_surveys_by_job(self, job_id: int) -> List[Dict]:
+        """Get all surveys for papers in a job."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT ps.* FROM paper_surveys ps
+                JOIN papers p ON ps.paper_id = p.id
+                WHERE p.job_id = ?
+            ''', (job_id,))
+            return [dict(row) for row in cursor.fetchall()]
 
 # Global database instance
 db = DatabaseManager()

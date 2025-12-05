@@ -11,7 +11,8 @@ from modules.compiler import CompilationAgent
 from modules.database import db
 from modules.vector_db import vector_db
 from modules.knowledge_graph import knowledge_graph
-from modules.rag_engine import rag_engine
+from modules.hybrid_rag import hybrid_rag_engine
+from modules.survey_generator import survey_generator
 from modules.utils import logger, format_duration
 
 app = Flask(__name__)
@@ -45,6 +46,11 @@ def not_found(error):
 def index():
     """Main page."""
     return render_template('index.html')
+
+@app.route('/results')
+def results():
+    """Results page with surveys and RAG."""
+    return render_template('results.html')
 
 @app.route('/start_processing', methods=['POST'])
 def start_processing():
@@ -311,7 +317,7 @@ def get_stats():
 @app.route('/rag/query', methods=['POST'])
 def rag_query():
     """
-    Answer a question using RAG.
+    Answer a question using Hybrid RAG (BM25 + Semantic).
     
     Request body:
     {
@@ -324,7 +330,7 @@ def rag_query():
         question = data.get('question', '').strip()
         paper_id = data.get('paper_id')
         
-        logger.info(f"📝 RAG Query received: '{question}'")
+        logger.info(f"📝 Hybrid RAG Query received: '{question}'")
         
         if not question:
             return jsonify({'error': 'Question is required'}), 400
@@ -342,10 +348,10 @@ def rag_query():
         
         logger.info(f"📊 Vector DB has {stats.get('total_chunks')} chunks from {stats.get('unique_papers')} papers")
         
-        # Query RAG engine
-        result = rag_engine.query(question, specific_paper_id=paper_id)
+        # Query Hybrid RAG engine
+        result = hybrid_rag_engine.query(question, specific_paper_id=paper_id)
         
-        logger.info(f"✅ RAG query completed: {len(result.get('sources', []))} sources")
+        logger.info(f"✅ Hybrid RAG query completed: {len(result.get('sources', []))} sources")
         
         return jsonify(result)
         
@@ -362,8 +368,12 @@ def rag_query():
 def get_research_summary():
     """Get overall research summary across all papers."""
     try:
-        summary = rag_engine.generate_research_summary()
-        return jsonify(summary)
+        # For now, return basic summary from knowledge graph
+        stats = {
+            'summary': 'Research summary feature uses knowledge graph analysis',
+            'statistics': knowledge_graph.get_research_overview()
+        }
+        return jsonify(stats)
     except Exception as e:
         logger.error(f"Summary generation error: {e}")
         return jsonify({'error': str(e)}), 500
@@ -466,6 +476,134 @@ def reindex_all():
     except Exception as e:
         logger.error(f"Reindexing error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ========== LITERATURE SURVEY ENDPOINTS ==========
+
+@app.route('/surveys/generate', methods=['POST'])
+def generate_surveys():
+    """Generate literature surveys for all papers in a job."""
+    try:
+        data = request.json
+        job_id = data.get('job_id')
+        
+        if not job_id:
+            return jsonify({'error': 'job_id is required'}), 400
+        
+        logger.info(f"📚 Generating surveys for job {job_id}...")
+        
+        result = survey_generator.compile_job_surveys(job_id)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Survey generation error: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/surveys/<int:paper_id>')
+def get_paper_survey(paper_id):
+    """Get literature survey for a specific paper."""
+    try:
+        survey = db.get_paper_survey(paper_id)
+        
+        if not survey:
+            return jsonify({'error': 'Survey not found', 'paper_id': paper_id}), 404
+        
+        return jsonify({
+            'paper_id': paper_id,
+            'survey': survey
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrieving survey: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/surveys/job/<int:job_id>')
+def get_job_surveys(job_id):
+    """Get all surveys for a job."""
+    try:
+        surveys = db.get_surveys_by_job(job_id)
+        
+        return jsonify({
+            'job_id': job_id,
+            'total_surveys': len(surveys),
+            'surveys': surveys
+        })
+        
+    except Exception as e:
+        logger.error(f"Error retrieving surveys: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/results/comprehensive')
+def get_comprehensive_results():
+    """Get comprehensive results including surveys and all metadata."""
+    try:
+        job_id = request.args.get('job_id', type=int)
+        
+        if not job_id:
+            recent_jobs = db.get_recent_jobs(limit=1)
+            if not recent_jobs:
+                return jsonify({'error': 'No results available'}), 404
+            job_id = recent_jobs[0]['id']
+        
+        job_data = db.get_job(job_id)
+        if not job_data:
+            return jsonify({'error': 'Job not found'}), 404
+        
+        papers = db.get_papers_by_job(job_id)
+        surveys = db.get_surveys_by_job(job_id)
+        
+        # Build comprehensive results
+        results = []
+        for paper in papers:
+            paper_result = {
+                'paper': {
+                    'id': paper['id'],
+                    'arxiv_id': paper['arxiv_id'],
+                    'title': paper['title'],
+                    'authors': json.loads(paper['authors']) if paper['authors'] else [],
+                    'abstract': paper['abstract'],
+                    'citation_count': paper['citation_count'],
+                    'published_date': paper['published_date'],
+                    'status': paper['processing_status']
+                }
+            }
+            
+            # Add compiled data
+            if paper['compiled_json_path'] and os.path.exists(paper['compiled_json_path']):
+                try:
+                    with open(paper['compiled_json_path'], 'r', encoding='utf-8') as f:
+                        compiled = json.load(f)
+                        paper_result['compiled_data'] = compiled
+                except:
+                    pass
+            
+            # Add survey if available
+            paper_survey = next((s for s in surveys if s['paper_id'] == paper['id']), None)
+            if paper_survey:
+                paper_result['survey'] = {
+                    'related_work': paper_survey.get('related_work'),
+                    'methodology_survey': paper_survey.get('methodology_survey'),
+                    'contributions_summary': paper_survey.get('contributions_summary'),
+                    'research_gaps': paper_survey.get('research_gaps'),
+                    'context_analysis': paper_survey.get('context_analysis')
+                }
+            
+            results.append(paper_result)
+        
+        return jsonify({
+            'job': job_data,
+            'summary': {
+                'total_papers': len(papers),
+                'papers_with_surveys': len(surveys),
+                'completed_papers': sum(1 for p in papers if p['processing_status'] == 'completed'),
+                'topic': job_data['topic']
+            },
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting comprehensive results: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 # ========== BACKGROUND PROCESSING ==========
 
@@ -574,8 +712,16 @@ def process_papers_background(job_id: int, topic: str, num_papers: int):
         end_time = datetime.now()
         processing_time = format_duration((end_time - start_time).total_seconds())
         
-        db.update_job_status(job_id, 'completed', 100, 
-                           f'Completed! Processed {len(papers_metadata)} papers in {processing_time}')
+        db.update_job_status(job_id, 'completed', 95, 
+                           f'Generating literature surveys... {len(papers_metadata)} papers')
+        
+        # Step 3: Generate literature surveys
+        logger.info("Step 3: Generating literature surveys...")
+        try:
+            survey_result = survey_generator.compile_job_surveys(job_id)
+            logger.info(f"✅ Generated {survey_result.get('total_surveys', 0)} surveys")
+        except Exception as e:
+            logger.error(f"Error generating surveys: {e}", exc_info=True)
         
         # Save knowledge graph to disk
         try:
@@ -583,6 +729,9 @@ def process_papers_background(job_id: int, topic: str, num_papers: int):
             logger.info("Knowledge graph saved successfully")
         except Exception as e:
             logger.error(f"Error saving knowledge graph: {e}")
+        
+        db.update_job_status(job_id, 'completed', 100, 
+                           f'Completed! Processed {len(papers_metadata)} papers in {processing_time}')
         
         logger.info(f"✅ Job {job_id} completed successfully in {processing_time}")
         
