@@ -67,12 +67,18 @@ class LiteratureSurveyGenerator:
                 title, metadata, contributions
             )
             
+            # Step 6: Generate Academic Literature Survey (NEW)
+            literature_survey = self._generate_literature_survey(
+                title, abstract, sections_text, references
+            )
+            
             survey = {
                 'paper_id': paper_id,
                 'arxiv_id': metadata.get('arxiv_id', ''),
                 'title': title,
                 'abstract': abstract,
                 'survey_sections': {
+                    'literature_survey': literature_survey,  # NEW: Academic-style survey
                     'related_work': related_work,
                     'methodology_survey': methodology_survey,
                     'contributions_summary': contributions_summary,
@@ -301,6 +307,91 @@ FORMAT AS ACADEMIC PROSE:"""
                 'content': f"Error: {str(e)}",
                 'error': str(e),
                 'section_type': 'context'
+            }
+    
+    def _generate_literature_survey(self, title: str, abstract: str, 
+                                    sections_text: Dict, references: List) -> Dict:
+        """
+        Generate academic-style Literature Survey section.
+        This creates a dense, citation-heavy narrative review of related work,
+        similar to the Literature Survey sections in IEEE conference papers.
+        """
+        try:
+            # Extract introduction and related work sections
+            relevant_sections = {k: v for k, v in sections_text.items() 
+                               if any(kw in k.lower() for kw in 
+                                     ['intro', 'related', 'background', 'survey', 'literature', 'previous'])}
+            
+            survey_content = "\n".join(relevant_sections.values())[:3000]
+            
+            # Extract reference titles/context if available
+            ref_context = ""
+            if references:
+                ref_list = []
+                for i, ref in enumerate(references[:20], 1):  # Limit to first 20
+                    if isinstance(ref, dict):
+                        ref_title = ref.get('title', 'Unknown')
+                        ref_list.append(f"[{i}] {ref_title}")
+                    elif isinstance(ref, str):
+                        ref_list.append(f"[{i}] {ref[:100]}")
+                ref_context = "\n".join(ref_list)
+            
+            prompt = f"""You are writing the LITERATURE SURVEY section for an IEEE conference research paper.
+
+PAPER TITLE: {title}
+
+ABSTRACT: {abstract}
+
+RELATED WORK CONTENT FROM PAPER:
+{survey_content}
+
+REFERENCES CITED:
+{ref_context}
+
+Generate a comprehensive LITERATURE SURVEY section following this style:
+- Write in dense, flowing academic prose (like IEEE papers)
+- Discuss multiple related works in each sentence using citations [1], [2], [3], etc.
+- Cover the progression of research in this domain
+- Mention specific techniques, algorithms, models, and approaches
+- Include author names when introducing key work (e.g., "Zhou et al. [9] proposed...")
+- Discuss results, accuracies, and performance metrics when mentioned
+- Connect different works showing how the field evolved
+- Write 3-4 substantial paragraphs with multiple citations per sentence
+- Use transitions like "In recent years", "Several studies", "Furthermore", "Additionally"
+- End with current challenges or limitations in existing approaches
+
+IMPORTANT: 
+- Use citation numbers [1], [2], [3] extensively throughout
+- Make it read like a real literature survey from an IEEE paper
+- Be specific about techniques and results
+- Keep the narrative flowing naturally from one work to another
+
+Write ONLY the literature survey content (no headers or section titles):"""
+
+            response = ollama.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                options={"temperature": 0.4, "num_predict": 800}
+            )
+            
+            content = response['message']['content'].strip()
+            
+            # Clean up any headers if Ollama added them
+            content = content.replace('LITERATURE SURVEY', '').replace('Literature Survey', '').strip()
+            
+            return {
+                'content': content,
+                'section_type': 'literature_survey',
+                'reference_count': len(references),
+                'style': 'academic_ieee'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating literature survey: {e}")
+            return {
+                'content': f"Error: {str(e)}",
+                'error': str(e),
+                'section_type': 'literature_survey'
             }
     
     def compile_job_surveys(self, job_id: int) -> Dict:

@@ -148,12 +148,14 @@ User Question
 ### BM25 Algorithm
 
 **Why BM25?**
+
 - Probabilistic model used by search engines
 - Excellent for keyword matching
 - Handles term frequency normalization
 - Document length normalization
 
 **Formula:**
+
 ```
 BM25(D, Q) = Σ(IDF(qi) * (f(qi, D) * (k1 + 1)) / (f(qi, D) + k1 * (1 - b + b * |D| / avgdl)))
 
@@ -169,12 +171,14 @@ Where:
 ### Semantic Search
 
 **Why Semantic Search?**
+
 - Captures meaning, not just keywords
 - Finds similar concepts
 - Handles synonyms
 - Understands context
 
 **Process:**
+
 1. Query → Embedding (SentenceTransformer)
 2. Document sections → Embeddings (pre-computed)
 3. Similarity calculation (cosine distance)
@@ -183,11 +187,13 @@ Where:
 ### Reciprocal Rank Fusion (RRF)
 
 **Why RRF?**
+
 - Combines strengths of both methods
 - No parameter tuning needed
 - Proven effective in fusion
 
 **Formula:**
+
 ```
 RRF_score = Σ(1 / (k + rank))
 
@@ -195,6 +201,7 @@ Where k = 60 (constant)
 ```
 
 **Example:**
+
 ```
 Query: "transformer neural networks"
 
@@ -220,11 +227,13 @@ Final Ranking: A, C, B, D
 ### Cross-Encoder Reranking
 
 **Why Reranking?**
+
 - LLM can judge relevance better
 - Handles complex queries
 - Considers full context
 
 **Process:**
+
 1. Take top 15 from RRF
 2. Format for LLM evaluation
 3. LLM ranks by relevance
@@ -310,6 +319,7 @@ paper_surveys
 ```
 
 ### Indexes for Performance
+
 ```sql
 idx_papers_arxiv_id        -- Fast paper lookup
 idx_papers_job_id          -- Fast job filtering
@@ -412,10 +422,10 @@ Edges:
 
 2. Topic Clustering
    Find papers discussing same concepts
-   
+
 3. Author Networks
    Find collaborating authors
-   
+
 4. Related Papers
    Papers with overlapping citations
 ```
@@ -427,6 +437,7 @@ Edges:
 ### Prompt Templates
 
 #### 1. Related Work & Context
+
 ```
 Input:
 - Title, abstract
@@ -434,7 +445,7 @@ Input:
 - Key problem
 - Innovations
 
-Output: 
+Output:
 - Historical context
 - Problem space
 - Positioning vs prior work
@@ -442,6 +453,7 @@ Output:
 ```
 
 #### 2. Methodology Survey
+
 ```
 Input:
 - Method/approach sections
@@ -456,6 +468,7 @@ Output:
 ```
 
 #### 3. Contributions Summary
+
 ```
 Input:
 - Main contributions
@@ -470,6 +483,7 @@ Output:
 ```
 
 #### 4. Research Gaps
+
 ```
 Input:
 - Limitations mentioned
@@ -484,6 +498,7 @@ Output:
 ```
 
 #### 5. Context Analysis
+
 ```
 Input:
 - Title, authors
@@ -502,6 +517,7 @@ Output:
 ## Performance Characteristics
 
 ### Processing Time
+
 ```
 Scraping 10 papers:      2-5 min
 Compiling 10 papers:     10-15 min
@@ -511,6 +527,7 @@ Total for 10 papers:     20-35 min
 ```
 
 ### Storage Requirements
+
 ```
 Per paper (average):
 - PDF:                   ~2 MB
@@ -525,6 +542,7 @@ For 100 papers:
 ```
 
 ### Query Response
+
 ```
 BM25 search:             <100 ms
 Semantic search:         <500 ms
@@ -538,6 +556,7 @@ Total query time:        3-4 sec
 ## Error Handling Strategy
 
 ### Critical Errors
+
 ```
 1. PDF Download Fails
    → Retry up to 3 times
@@ -561,6 +580,7 @@ Total query time:        3-4 sec
 ```
 
 ### Recovery Mechanisms
+
 ```
 1. Partial failures
    → Process continues
@@ -583,6 +603,7 @@ Total query time:        3-4 sec
 ## Configuration Parameters
 
 ### RAG Tuning
+
 ```python
 RAG_TOP_K_RESULTS = 15              # More = broader answers
 RAG_SIMILARITY_THRESHOLD = 0.35     # Lower = more results
@@ -594,6 +615,7 @@ RAG_TEMPERATURE = 0.2               # Lower = more focused
 ```
 
 ### Chunking Tuning
+
 ```python
 CHUNK_SIZE = 600                    # Larger = more context
 CHUNK_OVERLAP = 100                 # Larger = more connections
@@ -601,6 +623,7 @@ MIN_CHUNK_SIZE = 50                 # Minimum viable chunk
 ```
 
 ### BM25 Parameters
+
 ```python
 k1 = 1.5                            # Term saturation
 b = 0.75                            # Length normalization
@@ -611,6 +634,7 @@ b = 0.75                            # Length normalization
 ## Testing Strategy
 
 ### Unit Tests
+
 ```
 test_bm25_indexing.py
 ├── Test tokenization
@@ -629,6 +653,7 @@ test_rag_query.py
 ```
 
 ### Integration Tests
+
 ```
 test_full_pipeline.py
 ├── Scrape → Compile → Index
@@ -637,6 +662,7 @@ test_full_pipeline.py
 ```
 
 ### Performance Tests
+
 ```
 test_performance.py
 ├── Query latency
@@ -650,6 +676,7 @@ test_performance.py
 ## Security Considerations
 
 ### Data Privacy
+
 ```
 ✓ All data stored locally
 ✓ No external API calls (except arXiv)
@@ -658,6 +685,7 @@ test_performance.py
 ```
 
 ### Input Validation
+
 ```
 ✓ Query length limits
 ✓ File type validation
@@ -666,6 +694,7 @@ test_performance.py
 ```
 
 ### Resource Limits
+
 ```
 ✓ Max papers per job: 50
 ✓ Max query length: 500 chars
@@ -678,6 +707,7 @@ test_performance.py
 ## Future Enhancements
 
 ### Planned Features
+
 ```
 1. Multi-user support
 2. Async query processing
@@ -690,6 +720,7 @@ test_performance.py
 ```
 
 ### Optimization Ideas
+
 ```
 1. GPU acceleration for embeddings
 2. Caching for frequent queries

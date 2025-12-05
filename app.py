@@ -238,7 +238,7 @@ def get_job_details(job_id):
 
 @app.route('/download_results')
 def download_results():
-    """Download results as ZIP file."""
+    """Download results as comprehensive ZIP file with PDFs, JSONs, and surveys."""
     job_id = request.args.get('job_id', type=int)
     
     if not job_id:
@@ -252,6 +252,7 @@ def download_results():
         return jsonify({'error': 'Job not found'}), 404
     
     papers = db.get_papers_by_job(job_id)
+    surveys = db.get_surveys_by_job(job_id)
     
     if not papers:
         return jsonify({'error': 'No papers found for this job'}), 404
@@ -263,15 +264,17 @@ def download_results():
     
     try:
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            # Add summary JSON
+            # Add comprehensive summary JSON
             summary = {
                 'job': job_data,
-                'papers': len(papers),
-                'generated_at': timestamp
+                'total_papers': len(papers),
+                'papers_with_surveys': len(surveys),
+                'generated_at': timestamp,
+                'topic': job_data.get('topic', 'Unknown')
             }
             
             summary_file = os.path.join(config.PROCESSED_DIR, 'summary.json')
-            with open(summary_file, 'w') as f:
+            with open(summary_file, 'w', encoding='utf-8') as f:
                 json.dump(summary, f, indent=2)
             zipf.write(summary_file, 'summary.json')
             os.remove(summary_file)
@@ -281,22 +284,75 @@ def download_results():
                 if paper['compiled_json_path'] and os.path.exists(paper['compiled_json_path']):
                     zipf.write(
                         paper['compiled_json_path'],
-                        os.path.basename(paper['compiled_json_path'])
+                        f"compiled/{os.path.basename(paper['compiled_json_path'])}"
                     )
             
-            # Add PDFs (optional)
+            # Add PDFs
             for paper in papers:
                 if paper['pdf_path'] and os.path.exists(paper['pdf_path']):
                     zipf.write(
                         paper['pdf_path'],
                         f"pdfs/{os.path.basename(paper['pdf_path'])}"
                     )
+            
+            # Add literature surveys as separate files
+            for survey in surveys:
+                paper = next((p for p in papers if p['id'] == survey['paper_id']), None)
+                if paper:
+                    survey_content = f"""
+# Literature Survey: {paper['title']}
+ArXiv ID: {paper['arxiv_id']}
+Generated: {survey.get('generated_at', 'N/A')}
+
+## Related Work & Context
+{survey.get('related_work', 'N/A')}
+
+## Methodology Survey
+{survey.get('methodology_survey', 'N/A')}
+
+## Key Contributions
+{survey.get('contributions_summary', 'N/A')}
+
+## Research Gaps & Future Work
+{survey.get('research_gaps', 'N/A')}
+
+## Context Analysis
+{survey.get('context_analysis', 'N/A')}
+"""
+                    survey_filename = f"surveys/survey_{paper['arxiv_id'].replace('/', '_')}.md"
+                    zipf.writestr(survey_filename, survey_content)
+            
+            # Add overall summary
+            overall_summary = _generate_overall_summary(papers, surveys, job_data)
+            zipf.writestr('OVERALL_SUMMARY.md', overall_summary)
         
         return send_file(zip_path, as_attachment=True, download_name=zip_filename)
     
     except Exception as e:
         logger.error(f"Error creating ZIP: {e}", exc_info=True)
         return jsonify({'error': f'Error creating download: {str(e)}'}), 500
+
+def _generate_overall_summary(papers, surveys, job_data):
+    """Generate an overall summary document."""
+    content = f"""# Research Analysis Summary
+Topic: {job_data.get('topic', 'Unknown')}
+Total Papers: {len(papers)}
+Surveys Generated: {len(surveys)}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Papers Analyzed
+"""
+    for i, paper in enumerate(papers, 1):
+        content += f"\n{i}. **{paper['title']}**\n"
+        content += f"   - ArXiv ID: {paper['arxiv_id']}\n"
+        content += f"   - Citations: {paper['citation_count']}\n"
+        content += f"   - Status: {paper['processing_status']}\n"
+    
+    content += "\n\n## Survey Status\n"
+    content += f"- Papers with complete surveys: {len(surveys)}\n"
+    content += f"- Papers pending survey: {len(papers) - len(surveys)}\n"
+    
+    return content
 
 @app.route('/stats')
 def get_stats():
@@ -311,6 +367,55 @@ def get_stats():
     stats['knowledge_graph'] = graph_stats
     
     return jsonify(stats)
+
+@app.route('/admin')
+def admin_panel():
+    """Admin panel for system maintenance."""
+    return render_template('admin.html')
+
+@app.route('/knowledge_graph')
+def view_knowledge_graph():
+    """View the knowledge graph visualization."""
+    try:
+        graph = knowledge_graph.graph
+        
+        if graph.number_of_nodes() == 0:
+            return render_template('error.html', 
+                                 error='Knowledge graph is empty. Please reindex the database.'), 404
+        
+        # Prepare graph data for web visualization
+        nodes = []
+        edges = []
+        
+        for node in graph.nodes():
+            node_data = graph.nodes[node]
+            node_type = 'paper' if node.startswith('paper_') else (
+                        'author' if node.startswith('author_') else 'concept')
+            
+            nodes.append({
+                'id': node,
+                'label': node_data.get('title', node_data.get('name', node))[:50],
+                'type': node_type,
+                'full_label': node_data.get('title', node_data.get('name', node)),
+                'citations': node_data.get('citation_count', 0) if node_type == 'paper' else 0
+            })
+        
+        for source, target, key in graph.edges(keys=True):
+            edge_data = graph.edges[source, target, key]
+            edges.append({
+                'source': source,
+                'target': target,
+                'type': edge_data.get('type', 'unknown')
+            })
+        
+        return render_template('knowledge_graph.html', 
+                             nodes=nodes, 
+                             edges=edges,
+                             stats=knowledge_graph.get_statistics())
+        
+    except Exception as e:
+        logger.error(f"Error viewing knowledge graph: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 # ========== RAG ENDPOINTS ==========
 
@@ -533,6 +638,156 @@ def get_job_surveys(job_id):
         logger.error(f"Error retrieving surveys: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/surveys/overall')
+def get_overall_survey():
+    """Generate an overall literature survey synthesizing all papers in a job."""
+    try:
+        job_id = request.args.get('job_id', type=int)
+        
+        if not job_id:
+            return jsonify({'error': 'job_id parameter required'}), 400
+        
+        job_data = db.get_job(job_id)
+        if not job_data:
+            return jsonify({'error': 'Job not found'}), 404
+        
+        papers = db.get_papers_by_job(job_id)
+        surveys = db.get_surveys_by_job(job_id)
+        
+        if not papers:
+            return jsonify({'error': 'No papers found for this job'}), 404
+        
+        # Generate overall survey using Ollama
+        overall_survey = _generate_comprehensive_literature_survey(
+            papers, surveys, job_data
+        )
+        
+        return jsonify(overall_survey)
+        
+    except Exception as e:
+        logger.error(f"Error generating overall survey: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+def _generate_comprehensive_literature_survey(papers, surveys, job_data):
+    """Generate comprehensive literature survey across all papers."""
+    try:
+        import ollama
+        
+        logger.info(f"Generating overall survey for {len(papers)} papers")
+        
+        # Collect key information from all papers
+        papers_summary = []
+        for paper in papers[:10]:  # Limit to 10 to avoid token overflow
+            paper_info = {
+                'title': paper.get('title', 'Unknown'),
+                'abstract': paper.get('abstract', '')[:250] if paper.get('abstract') else 'No abstract',
+                'arxiv_id': paper.get('arxiv_id', 'Unknown')
+            }
+            
+            # Add survey if available
+            survey = next((s for s in surveys if s.get('paper_id') == paper.get('id')), None)
+            if survey:
+                paper_info['contributions'] = survey.get('contributions_summary', '')[:150]
+                paper_info['gaps'] = survey.get('research_gaps', '')[:150]
+            
+            papers_summary.append(paper_info)
+        
+        # Build comprehensive prompt
+        papers_text = "\n\n".join([
+            f"Paper {i+1}: {p['title']}\n"
+            f"Abstract: {p['abstract']}\n"
+            f"Contributions: {p.get('contributions', 'N/A')}\n"
+            f"Gaps: {p.get('gaps', 'N/A')}"
+            for i, p in enumerate(papers_summary)
+        ])
+        
+        prompt = f"""Analyze these {len(papers_summary)} research papers on "{job_data.get('topic', 'Unknown')}" and write a comprehensive literature survey.
+
+PAPERS:
+{papers_text}
+
+Write 5 concise paragraphs (2-3 sentences each):
+
+1. DOMAIN: Define the research area and its importance
+2. METHODS: Main approaches and techniques used
+3. FINDINGS: Key results and consensus across papers
+4. CHALLENGES: Common limitations and obstacles
+5. FUTURE: Research gaps and future directions
+
+Use formal academic style. Reference papers as [Paper 1], [Paper 2], etc.
+
+Format each paragraph with a clear heading."""
+
+        logger.info("Calling Ollama to generate survey...")
+        response = ollama.chat(
+            model=config.OLLAMA_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            options={"temperature": 0.3, "num_predict": 1500}
+        )
+        
+        content = response['message']['content'].strip()
+        logger.info(f"Generated survey: {len(content)} characters")
+        
+        # Parse sections using simpler regex patterns
+        import re
+        
+        sections = {
+            'domain_scope': '',
+            'methodologies': '',
+            'key_findings': '',
+            'challenges': '',
+            'future_directions': ''
+        }
+        
+        # Try to extract sections by numbered headers
+        parts = re.split(r'\n\s*[12345]\.\s*', content)
+        
+        if len(parts) >= 5:
+            sections['domain_scope'] = parts[1].strip() if len(parts) > 1 else ''
+            sections['methodologies'] = parts[2].strip() if len(parts) > 2 else ''
+            sections['key_findings'] = parts[3].strip() if len(parts) > 3 else ''
+            sections['challenges'] = parts[4].strip() if len(parts) > 4 else ''
+            sections['future_directions'] = parts[5].strip() if len(parts) > 5 else ''
+        else:
+            # Fallback: just split content into 5 equal parts
+            lines = content.split('\n')
+            chunk_size = len(lines) // 5
+            if chunk_size > 0:
+                sections['domain_scope'] = '\n'.join(lines[:chunk_size]).strip()
+                sections['methodologies'] = '\n'.join(lines[chunk_size:chunk_size*2]).strip()
+                sections['key_findings'] = '\n'.join(lines[chunk_size*2:chunk_size*3]).strip()
+                sections['challenges'] = '\n'.join(lines[chunk_size*3:chunk_size*4]).strip()
+                sections['future_directions'] = '\n'.join(lines[chunk_size*4:]).strip()
+            else:
+                # Last resort: put everything in domain_scope
+                sections['domain_scope'] = content
+        
+        # Convert newlines to HTML breaks for display
+        for key in sections:
+            if sections[key]:
+                sections[key] = sections[key].replace('\n', '<br>')
+        
+        sections['stats'] = {
+            'total_papers': len(papers),
+            'papers_with_surveys': len(surveys),
+            'topic': job_data.get('topic', 'Unknown')
+        }
+        
+        logger.info("Survey generation complete")
+        return sections
+        
+    except Exception as e:
+        logger.error(f"Error in comprehensive survey generation: {e}", exc_info=True)
+        return {
+            'error': str(e),
+            'domain_scope': f'Error generating survey: {str(e)}',
+            'methodologies': 'N/A',
+            'key_findings': 'N/A',
+            'challenges': 'N/A',
+            'future_directions': 'N/A',
+            'stats': {'total_papers': len(papers), 'papers_with_surveys': len(surveys)}
+        }
+
 @app.route('/results/comprehensive')
 def get_comprehensive_results():
     """Get comprehensive results including surveys and all metadata."""
@@ -581,11 +836,13 @@ def get_comprehensive_results():
             paper_survey = next((s for s in surveys if s['paper_id'] == paper['id']), None)
             if paper_survey:
                 paper_result['survey'] = {
+                    'literature_survey': paper_survey.get('literature_survey'),
                     'related_work': paper_survey.get('related_work'),
                     'methodology_survey': paper_survey.get('methodology_survey'),
                     'contributions_summary': paper_survey.get('contributions_summary'),
                     'research_gaps': paper_survey.get('research_gaps'),
-                    'context_analysis': paper_survey.get('context_analysis')
+                    'context_analysis': paper_survey.get('context_analysis'),
+                    'reference_count': paper_survey.get('reference_count', 0)
                 }
             
             results.append(paper_result)

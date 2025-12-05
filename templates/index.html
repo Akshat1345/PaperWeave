@@ -1,690 +1,822 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Research Assistant</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
-        }
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+        max-width: 800px;
+        width: 100%;
+      }
 
-        h1 {
-            color: #667eea;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
+      h1 {
+        color: #667eea;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 2.5em;
+      }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-        }
+      .subtitle {
+        text-align: center;
+        color: #666;
+        margin-bottom: 30px;
+      }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+      .form-group {
+        margin-bottom: 20px;
+      }
 
-        label {
-            display: block;
-            color: #333;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
+      label {
+        display: block;
+        color: #333;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
 
-        input[type="text"],
-        input[type="number"] {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
 
-        input[type="text"]:focus,
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        outline: none;
+        border-color: #667eea;
+      }
 
-        .button {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+      .button {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
 
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+      }
 
-        .button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
+      .button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
 
-        .status-container {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            display: none;
-        }
+      .status-container {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        display: none;
+      }
 
-        .status-container.active {
-            display: block;
-        }
+      .status-container.active {
+        display: block;
+      }
 
-        .progress-bar {
-            width: 100%;
-            height: 30px;
-            background: #e0e0e0;
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
+      .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+        margin: 15px 0;
+      }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+      }
 
-        .status-text {
-            color: #333;
-            font-weight: 500;
-            margin-bottom: 10px;
-        }
+      .status-text {
+        color: #333;
+        font-weight: 500;
+        margin-bottom: 10px;
+      }
 
-        .results-container {
-            margin-top: 30px;
-            display: none;
-        }
+      .results-container {
+        margin-top: 30px;
+        display: none;
+      }
 
-        .results-container.active {
-            display: block;
-        }
+      .results-container.active {
+        display: block;
+      }
 
-        .paper-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
+      .paper-card {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+      }
 
-        .paper-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
-        }
+      .paper-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+      }
 
-        .paper-title {
-            color: #667eea;
-            font-size: 1.3em;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
+      .paper-title {
+        color: #667eea;
+        font-size: 1.3em;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
 
-        .paper-authors {
-            color: #666;
-            margin-bottom: 10px;
-        }
+      .paper-authors {
+        color: #666;
+        margin-bottom: 10px;
+      }
 
-        .paper-meta {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
+      .paper-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
 
-        .badge {
-            padding: 5px 12px;
-            border-radius: 5px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
+      .badge {
+        padding: 5px 12px;
+        border-radius: 5px;
+        font-size: 0.85em;
+        font-weight: 600;
+      }
 
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
-        }
+      .badge-success {
+        background: #d4edda;
+        color: #155724;
+      }
 
-        .badge-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
+      .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+      }
 
-        .badge-info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
+      .badge-info {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
 
-        .paper-abstract {
-            color: #555;
-            line-height: 1.6;
-            margin-top: 10px;
-        }
+      .paper-abstract {
+        color: #555;
+        line-height: 1.6;
+        margin-top: 10px;
+      }
 
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border: 1px solid #f5c6cb;
-        }
+      .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border: 1px solid #f5c6cb;
+      }
 
-        .success-message {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border: 1px solid #c3e6cb;
-        }
+      .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border: 1px solid #c3e6cb;
+      }
 
-        .download-button {
-            margin-top: 20px;
-            padding: 12px 30px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
+      .download-button {
+        margin-top: 20px;
+        padding: 12px 30px;
+        background: #28a745;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
 
-        .download-button:hover {
-            background: #218838;
-        }
+      .download-button:hover {
+        background: #218838;
+      }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>🔬 AI Research Assistant</h1>
-        <p class="subtitle">Search, analyze, and understand research papers with AI</p>
+      <h1>🔬 AI Research Assistant</h1>
+      <p class="subtitle">
+        Search, analyze, and understand research papers with AI
+      </p>
+      <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
+        <a href="/knowledge_graph" style="color: #667eea; text-decoration: none; font-weight: 500; padding: 10px 20px; border: 2px solid #667eea; border-radius: 8px; display: inline-block; transition: all 0.3s;" onmouseover="this.style.background='#667eea'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#667eea'">
+          🕸️ View Knowledge Graph
+        </a>
+        <a href="/admin" style="color: #48bb78; text-decoration: none; font-weight: 500; padding: 10px 20px; border: 2px solid #48bb78; border-radius: 8px; display: inline-block; transition: all 0.3s;" onmouseover="this.style.background='#48bb78'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#48bb78'">
+          ⚙️ Admin Panel
+        </a>
+      </div>
 
-        <form id="searchForm">
-            <div class="form-group">
-                <label for="topic">Research Topic</label>
-                <input 
-                    type="text" 
-                    id="topic" 
-                    placeholder="e.g., transformer neural networks"
-                    required
-                >
-            </div>
-
-            <div class="form-group">
-                <label for="numPapers">Number of Papers (1-20)</label>
-                <input 
-                    type="number" 
-                    id="numPapers" 
-                    min="1" 
-                    max="20" 
-                    value="5"
-                    required
-                >
-            </div>
-
-            <button type="submit" class="button" id="submitBtn">
-                🚀 Start Processing
-            </button>
-        </form>
-
-        <div class="status-container" id="statusContainer">
-            <div class="status-text" id="statusText">Initializing...</div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
-            </div>
-            <div id="currentPaper" style="color: #666; font-size: 0.9em; margin-top: 10px;"></div>
+      <form id="searchForm">
+        <div class="form-group">
+          <label for="topic">Research Topic</label>
+          <input
+            type="text"
+            id="topic"
+            placeholder="e.g., transformer neural networks"
+            required
+          />
         </div>
 
-        <div class="results-container" id="resultsContainer">
-            <h2 style="color: #667eea; margin-bottom: 20px;">📚 Results</h2>
-            <div id="resultsContent"></div>
-            <button class="download-button" id="downloadBtn">
-                📥 Download All Results
-            </button>
-            
-            <!-- RAG Query Interface -->
-            <div style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 15px;">
-                <h3 style="color: #667eea; margin-bottom: 20px;">🤖 Ask Questions About Your Research</h3>
-                <p style="color: #666; margin-bottom: 20px;">
-                    Ask anything about the papers you've processed. The AI will search across all papers and provide answers with citations.
-                </p>
-                
-                <div class="form-group">
-                    <label for="ragQuestion">Your Question</label>
-                    <input 
-                        type="text" 
-                        id="ragQuestion" 
-                        placeholder="e.g., What are the main challenges in deep learning training?"
-                    >
-                </div>
-                
-                <button class="button" id="askBtn" style="margin-top: 10px;">
-                    🔍 Ask AI
-                </button>
-                
-                <div id="ragAnswerContainer" style="margin-top: 20px; display: none;">
-                    <div style="background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea;">
-                        <h4 style="color: #667eea; margin-bottom: 10px;">💡 Answer:</h4>
-                        <div id="ragAnswer" style="line-height: 1.8; color: #333;"></div>
-                        
-                        <div id="ragSources" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
-                            <h5 style="color: #667eea; margin-bottom: 10px;">📖 Sources:</h5>
-                            <div id="ragSourcesList"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Research Overview -->
-                <div style="margin-top: 30px;">
-                    <button class="button" id="summaryBtn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        📊 Generate Research Overview
-                    </button>
-                    
-                    <button class="button" id="reindexBtn" style="margin-left: 10px; background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);">
-                        🔄 Reindex All Papers
-                    </button>
-                    
-                    <div id="summaryContainer" style="margin-top: 20px; display: none;">
-                        <div style="background: white; padding: 20px; border-radius: 10px;">
-                            <h4 style="color: #f5576c; margin-bottom: 15px;">📊 Research Landscape Overview</h4>
-                            <div id="summaryContent" style="line-height: 1.8; color: #333;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="form-group">
+          <label for="numPapers">Number of Papers (1-20)</label>
+          <input
+            type="number"
+            id="numPapers"
+            min="1"
+            max="20"
+            value="5"
+            required
+          />
         </div>
 
-        <div id="errorContainer"></div>
+        <button type="submit" class="button" id="submitBtn">
+          🚀 Start Processing
+        </button>
+      </form>
+
+      <div class="status-container" id="statusContainer">
+        <div class="status-text" id="statusText">Initializing...</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%">
+            0%
+          </div>
+        </div>
+        <div
+          id="currentPaper"
+          style="color: #666; font-size: 0.9em; margin-top: 10px"
+        ></div>
+      </div>
+
+      <div class="results-container" id="resultsContainer">
+        <h2 style="color: #667eea; margin-bottom: 20px">📚 Results</h2>
+        <div id="resultsContent"></div>
+        <button class="download-button" id="downloadBtn">
+          📥 Download All Results
+        </button>
+
+        <!-- RAG Query Interface -->
+        <div
+          style="
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+          "
+        >
+          <h3 style="color: #667eea; margin-bottom: 20px">
+            🤖 Ask Questions About Your Research
+          </h3>
+          <p style="color: #666; margin-bottom: 20px">
+            Ask anything about the papers you've processed. The AI will search
+            across all papers and provide answers with citations.
+          </p>
+
+          <div class="form-group">
+            <label for="ragQuestion">Your Question</label>
+            <input
+              type="text"
+              id="ragQuestion"
+              placeholder="e.g., What are the main challenges in deep learning training?"
+            />
+          </div>
+
+          <button class="button" id="askBtn" style="margin-top: 10px">
+            🔍 Ask AI
+          </button>
+
+          <div id="ragAnswerContainer" style="margin-top: 20px; display: none">
+            <div
+              style="
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                border-left: 4px solid #667eea;
+              "
+            >
+              <h4 style="color: #667eea; margin-bottom: 10px">💡 Answer:</h4>
+              <div id="ragAnswer" style="line-height: 1.8; color: #333"></div>
+
+              <div
+                id="ragSources"
+                style="
+                  margin-top: 20px;
+                  padding-top: 20px;
+                  border-top: 2px solid #e0e0e0;
+                "
+              >
+                <h5 style="color: #667eea; margin-bottom: 10px">📖 Sources:</h5>
+                <div id="ragSourcesList"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Research Overview -->
+          <div style="margin-top: 30px">
+            <button
+              class="button"
+              id="summaryBtn"
+              style="
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+              "
+            >
+              📊 Generate Research Overview
+            </button>
+
+            <button
+              class="button"
+              id="reindexBtn"
+              style="
+                margin-left: 10px;
+                background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+              "
+            >
+              🔄 Reindex All Papers
+            </button>
+
+            <div id="summaryContainer" style="margin-top: 20px; display: none">
+              <div
+                style="background: white; padding: 20px; border-radius: 10px"
+              >
+                <h4 style="color: #f5576c; margin-bottom: 15px">
+                  📊 Research Landscape Overview
+                </h4>
+                <div
+                  id="summaryContent"
+                  style="line-height: 1.8; color: #333"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="errorContainer"></div>
     </div>
 
     <script>
-        let statusCheckInterval;
-        let currentJobId = null;
+      let statusCheckInterval;
+      let currentJobId = null;
 
-        document.getElementById('searchForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const topic = document.getElementById('topic').value;
-            const numPapers = document.getElementById('numPapers').value;
-            
-            // Reset UI
-            document.getElementById('statusContainer').classList.add('active');
-            document.getElementById('resultsContainer').classList.remove('active');
-            document.getElementById('errorContainer').innerHTML = '';
-            document.getElementById('submitBtn').disabled = true;
-            
-            try {
-                const response = await fetch('/start_processing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ topic, num_papers: parseInt(numPapers) })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    currentJobId = data.job_id;
-                    startStatusChecking();
-                } else {
-                    showError(data.error || 'Failed to start processing');
-                    document.getElementById('submitBtn').disabled = false;
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-                document.getElementById('submitBtn').disabled = false;
+      document
+        .getElementById("searchForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const topic = document.getElementById("topic").value;
+          const numPapers = document.getElementById("numPapers").value;
+
+          // Reset UI
+          document.getElementById("statusContainer").classList.add("active");
+          document
+            .getElementById("resultsContainer")
+            .classList.remove("active");
+          document.getElementById("errorContainer").innerHTML = "";
+          document.getElementById("submitBtn").disabled = true;
+
+          try {
+            const response = await fetch("/start_processing", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ topic, num_papers: parseInt(numPapers) }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+              currentJobId = data.job_id;
+              startStatusChecking();
+            } else {
+              showError(data.error || "Failed to start processing");
+              document.getElementById("submitBtn").disabled = false;
             }
+          } catch (error) {
+            showError("Network error: " + error.message);
+            document.getElementById("submitBtn").disabled = false;
+          }
         });
 
-        function startStatusChecking() {
-            // Check status every 2 seconds
-            statusCheckInterval = setInterval(checkStatus, 2000);
-            checkStatus(); // Check immediately
-        }
+      function startStatusChecking() {
+        // Check status every 2 seconds
+        statusCheckInterval = setInterval(checkStatus, 2000);
+        checkStatus(); // Check immediately
+      }
 
-        async function checkStatus() {
-            try {
-                const response = await fetch('/status');
-                const data = await response.json();
-                
-                // Check if processing is complete
-                if (!data.is_processing || data.is_processing === false) {
-                    clearInterval(statusCheckInterval);
-                    
-                    // Wait a moment then load results
-                    setTimeout(() => {
-                        loadResults();
-                    }, 1000);
-                    return;
-                }
-                
-                // Update progress
-                const progress = data.progress || 0;
-                const statusText = data.current_step || 'Processing...';
-                
-                document.getElementById('progressFill').style.width = progress + '%';
-                document.getElementById('progressFill').textContent = Math.round(progress) + '%';
-                document.getElementById('statusText').textContent = statusText;
-                
-                // Show current paper if available
-                if (data.current_paper) {
-                    document.getElementById('currentPaper').textContent = 
-                        `Current: ${data.current_paper}`;
-                }
-                
-            } catch (error) {
-                console.error('Status check error:', error);
-            }
-        }
+      async function checkStatus() {
+        try {
+          const response = await fetch("/status");
+          const data = await response.json();
 
-        async function loadResults() {
-            try {
-                // Redirect to comprehensive results page
-                if (currentJobId) {
-                    window.location.href = `/results?job_id=${currentJobId}`;
-                } else {
-                    window.location.href = '/results';
-                }
-            } catch (error) {
-                showError('Error loading results: ' + error.message);
-            }
-        }
+          // Check if processing is complete
+          if (!data.is_processing || data.is_processing === false) {
+            clearInterval(statusCheckInterval);
 
-        function displayResults(results) {
-            const container = document.getElementById('resultsContent');
-            container.innerHTML = '';
-            
-            results.forEach((paper, index) => {
-                const metadata = paper.metadata || {};
-                const contributions = paper.contributions || {};
-                
-                const card = document.createElement('div');
-                card.className = 'paper-card';
-                
-                const statusBadge = paper.status === 'completed' 
-                    ? '<span class="badge badge-success">✓ Completed</span>'
-                    : '<span class="badge badge-warning">⚠ Processing Issue</span>';
-                
-                const citations = metadata.citation_count 
-                    ? `<span class="badge badge-info">📊 ${metadata.citation_count} citations</span>`
-                    : '';
-                
-                card.innerHTML = `
-                    <div class="paper-title">${index + 1}. ${metadata.title || 'Unknown Title'}</div>
+            // Wait a moment then load results
+            setTimeout(() => {
+              loadResults();
+            }, 1000);
+            return;
+          }
+
+          // Update progress
+          const progress = data.progress || 0;
+          const statusText = data.current_step || "Processing...";
+
+          document.getElementById("progressFill").style.width = progress + "%";
+          document.getElementById("progressFill").textContent =
+            Math.round(progress) + "%";
+          document.getElementById("statusText").textContent = statusText;
+
+          // Show current paper if available
+          if (data.current_paper) {
+            document.getElementById(
+              "currentPaper"
+            ).textContent = `Current: ${data.current_paper}`;
+          }
+        } catch (error) {
+          console.error("Status check error:", error);
+        }
+      }
+
+      async function loadResults() {
+        try {
+          // Redirect to comprehensive results page
+          if (currentJobId) {
+            window.location.href = `/results?job_id=${currentJobId}`;
+          } else {
+            window.location.href = "/results";
+          }
+        } catch (error) {
+          showError("Error loading results: " + error.message);
+        }
+      }
+
+      function displayResults(results) {
+        const container = document.getElementById("resultsContent");
+        container.innerHTML = "";
+
+        results.forEach((paper, index) => {
+          const metadata = paper.metadata || {};
+          const contributions = paper.contributions || {};
+
+          const card = document.createElement("div");
+          card.className = "paper-card";
+
+          const statusBadge =
+            paper.status === "completed"
+              ? '<span class="badge badge-success">✓ Completed</span>'
+              : '<span class="badge badge-warning">⚠ Processing Issue</span>';
+
+          const citations = metadata.citation_count
+            ? `<span class="badge badge-info">📊 ${metadata.citation_count} citations</span>`
+            : "";
+
+          card.innerHTML = `
+                    <div class="paper-title">${index + 1}. ${
+            metadata.title || "Unknown Title"
+          }</div>
                     <div class="paper-authors">
-                        👥 ${Array.isArray(metadata.authors) ? metadata.authors.slice(0, 3).join(', ') : 'Unknown'}
-                        ${Array.isArray(metadata.authors) && metadata.authors.length > 3 ? ' et al.' : ''}
+                        👥 ${
+                          Array.isArray(metadata.authors)
+                            ? metadata.authors.slice(0, 3).join(", ")
+                            : "Unknown"
+                        }
+                        ${
+                          Array.isArray(metadata.authors) &&
+                          metadata.authors.length > 3
+                            ? " et al."
+                            : ""
+                        }
                     </div>
                     <div class="paper-meta">
                         ${statusBadge}
                         ${citations}
-                        <span class="badge badge-info">📄 ${metadata.arxiv_id || 'N/A'}</span>
+                        <span class="badge badge-info">📄 ${
+                          metadata.arxiv_id || "N/A"
+                        }</span>
                     </div>
-                    ${metadata.abstract ? `
+                    ${
+                      metadata.abstract
+                        ? `
                         <div class="paper-abstract">
-                            <strong>Abstract:</strong> ${metadata.abstract.substring(0, 300)}...
+                            <strong>Abstract:</strong> ${metadata.abstract.substring(
+                              0,
+                              300
+                            )}...
                         </div>
-                    ` : ''}
-                    ${contributions.main_problem ? `
+                    `
+                        : ""
+                    }
+                    ${
+                      contributions.main_problem
+                        ? `
                         <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                             <strong style="color: #667eea;">🎯 Key Contribution:</strong><br>
                             ${contributions.main_problem}
                         </div>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                 `;
-                
-                container.appendChild(card);
-            });
-        }
 
-        function showError(message) {
-            const container = document.getElementById('errorContainer');
-            container.innerHTML = `
+          container.appendChild(card);
+        });
+      }
+
+      function showError(message) {
+        const container = document.getElementById("errorContainer");
+        container.innerHTML = `
                 <div class="error-message">
                     <strong>❌ Error:</strong> ${message}
                 </div>
             `;
-        }
+      }
 
-        function showSuccess(message) {
-            const container = document.getElementById('errorContainer');
-            container.innerHTML = `
+      function showSuccess(message) {
+        const container = document.getElementById("errorContainer");
+        container.innerHTML = `
                 <div class="success-message">
                     <strong>✅ Success:</strong> ${message}
                 </div>
             `;
+      }
+
+      document.getElementById("downloadBtn").addEventListener("click", () => {
+        window.location.href =
+          "/download_results" + (currentJobId ? `?job_id=${currentJobId}` : "");
+      });
+
+      // RAG Query Handler
+      document.getElementById("askBtn").addEventListener("click", async () => {
+        const question = document.getElementById("ragQuestion").value.trim();
+
+        if (!question) {
+          showError("Please enter a question");
+          return;
         }
 
-        document.getElementById('downloadBtn').addEventListener('click', () => {
-            window.location.href = '/download_results' + (currentJobId ? `?job_id=${currentJobId}` : '');
+        console.log("Sending RAG query:", question);
+
+        document.getElementById("askBtn").disabled = true;
+        document.getElementById("askBtn").textContent = "🤔 Thinking...";
+        document.getElementById("ragAnswerContainer").style.display = "none";
+
+        try {
+          const response = await fetch("/rag/query", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question: question }),
+          });
+
+          console.log("RAG response status:", response.status);
+          const data = await response.json();
+          console.log("RAG response data:", data);
+
+          if (response.ok) {
+            if (data.answer) {
+              displayRagAnswer(data);
+            } else {
+              showError("No answer received from server");
+            }
+          } else {
+            showError(data.error || "Failed to get answer");
+          }
+        } catch (error) {
+          console.error("RAG query error:", error);
+          showError("Network error: " + error.message);
+        } finally {
+          document.getElementById("askBtn").disabled = false;
+          document.getElementById("askBtn").textContent = "🔍 Ask AI";
+        }
+      });
+
+      // Allow Enter key to submit
+      document
+        .getElementById("ragQuestion")
+        .addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            document.getElementById("askBtn").click();
+          }
         });
 
-        // RAG Query Handler
-        document.getElementById('askBtn').addEventListener('click', async () => {
-            const question = document.getElementById('ragQuestion').value.trim();
-            
-            if (!question) {
-                showError('Please enter a question');
-                return;
+      // Research Summary Handler
+      document
+        .getElementById("summaryBtn")
+        .addEventListener("click", async () => {
+          document.getElementById("summaryBtn").disabled = true;
+          document.getElementById("summaryBtn").textContent =
+            "⏳ Generating...";
+          document.getElementById("summaryContainer").style.display = "none";
+
+          try {
+            const response = await fetch("/rag/summary");
+            const data = await response.json();
+
+            if (response.ok) {
+              displaySummary(data);
+            } else {
+              showError(data.error || "Failed to generate summary");
             }
-            
-            console.log('Sending RAG query:', question);
-            
-            document.getElementById('askBtn').disabled = true;
-            document.getElementById('askBtn').textContent = '🤔 Thinking...';
-            document.getElementById('ragAnswerContainer').style.display = 'none';
-            
-            try {
-                const response = await fetch('/rag/query', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ question: question })
-                });
-                
-                console.log('RAG response status:', response.status);
-                const data = await response.json();
-                console.log('RAG response data:', data);
-                
-                if (response.ok) {
-                    if (data.answer) {
-                        displayRagAnswer(data);
-                    } else {
-                        showError('No answer received from server');
-                    }
-                } else {
-                    showError(data.error || 'Failed to get answer');
-                }
-            } catch (error) {
-                console.error('RAG query error:', error);
-                showError('Network error: ' + error.message);
-            } finally {
-                document.getElementById('askBtn').disabled = false;
-                document.getElementById('askBtn').textContent = '🔍 Ask AI';
-            }
+          } catch (error) {
+            showError("Network error: " + error.message);
+          } finally {
+            document.getElementById("summaryBtn").disabled = false;
+            document.getElementById("summaryBtn").textContent =
+              "📊 Generate Research Overview";
+          }
         });
 
-        // Allow Enter key to submit
-        document.getElementById('ragQuestion').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('askBtn').click();
+      // Reindex Handler
+      document
+        .getElementById("reindexBtn")
+        .addEventListener("click", async () => {
+          if (!confirm("Reindex all papers? This may take a few minutes.")) {
+            return;
+          }
+
+          document.getElementById("reindexBtn").disabled = true;
+          document.getElementById("reindexBtn").textContent =
+            "🔄 Reindexing...";
+
+          try {
+            const response = await fetch("/rag/reindex", { method: "POST" });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+              showSuccess(
+                `Reindexed ${data.indexed_count} papers! Total chunks: ${data.total_chunks}`
+              );
+
+              // Show stats
+              if (data.stats) {
+                console.log("Vector DB:", data.stats.vector_db);
+                console.log("Knowledge Graph:", data.stats.knowledge_graph);
+              }
+            } else {
+              showError(data.error || "Reindexing failed");
             }
+          } catch (error) {
+            showError("Network error: " + error.message);
+          } finally {
+            document.getElementById("reindexBtn").disabled = false;
+            document.getElementById("reindexBtn").textContent =
+              "🔄 Reindex All Papers";
+          }
         });
 
-        // Research Summary Handler
-        document.getElementById('summaryBtn').addEventListener('click', async () => {
-            document.getElementById('summaryBtn').disabled = true;
-            document.getElementById('summaryBtn').textContent = '⏳ Generating...';
-            document.getElementById('summaryContainer').style.display = 'none';
-            
-            try {
-                const response = await fetch('/rag/summary');
-                const data = await response.json();
-                
-                if (response.ok) {
-                    displaySummary(data);
-                } else {
-                    showError(data.error || 'Failed to generate summary');
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-            } finally {
-                document.getElementById('summaryBtn').disabled = false;
-                document.getElementById('summaryBtn').textContent = '📊 Generate Research Overview';
-            }
-        });
+      function displayRagAnswer(data) {
+        const answerContainer = document.getElementById("ragAnswerContainer");
+        const answerDiv = document.getElementById("ragAnswer");
+        const sourcesList = document.getElementById("ragSourcesList");
 
-        // Reindex Handler
-        document.getElementById('reindexBtn').addEventListener('click', async () => {
-            if (!confirm('Reindex all papers? This may take a few minutes.')) {
-                return;
-            }
-            
-            document.getElementById('reindexBtn').disabled = true;
-            document.getElementById('reindexBtn').textContent = '🔄 Reindexing...';
-            
-            try {
-                const response = await fetch('/rag/reindex', { method: 'POST' });
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    showSuccess(`Reindexed ${data.indexed_count} papers! Total chunks: ${data.total_chunks}`);
-                    
-                    // Show stats
-                    if (data.stats) {
-                        console.log('Vector DB:', data.stats.vector_db);
-                        console.log('Knowledge Graph:', data.stats.knowledge_graph);
-                    }
-                } else {
-                    showError(data.error || 'Reindexing failed');
-                }
-            } catch (error) {
-                showError('Network error: ' + error.message);
-            } finally {
-                document.getElementById('reindexBtn').disabled = false;
-                document.getElementById('reindexBtn').textContent = '🔄 Reindex All Papers';
-            }
-        });
+        // Display answer with formatting
+        const formattedAnswer = data.answer.replace(
+          /\[Source (\d+)\]/g,
+          '<sup style="color: #667eea; font-weight: bold;">[Source $1]</sup>'
+        );
+        answerDiv.innerHTML = formattedAnswer;
 
-        function displayRagAnswer(data) {
-            const answerContainer = document.getElementById('ragAnswerContainer');
-            const answerDiv = document.getElementById('ragAnswer');
-            const sourcesList = document.getElementById('ragSourcesList');
-            
-            // Display answer with formatting
-            const formattedAnswer = data.answer.replace(/\[Source (\d+)\]/g, 
-                '<sup style="color: #667eea; font-weight: bold;">[Source $1]</sup>');
-            answerDiv.innerHTML = formattedAnswer;
-            
-            // Display sources
-            if (data.sources && data.sources.length > 0) {
-                sourcesList.innerHTML = data.sources.map(source => `
+        // Display sources
+        if (data.sources && data.sources.length > 0) {
+          sourcesList.innerHTML = data.sources
+            .map(
+              (source) => `
                     <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                        <strong style="color: #667eea;">[Source ${source.source_number}]</strong>
+                        <strong style="color: #667eea;">[Source ${
+                          source.source_number
+                        }]</strong>
                         <div style="margin-top: 5px; color: #333;">
                             <strong>${source.title}</strong>
                         </div>
                         <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
-                            ArXiv: ${source.arxiv_id} | Section: ${source.section}
-                            | Relevance: ${(source.relevance_score * 100).toFixed(0)}%
+                            ArXiv: ${source.arxiv_id} | Section: ${
+                source.section
+              }
+                            | Relevance: ${(
+                              source.relevance_score * 100
+                            ).toFixed(0)}%
                         </div>
                     </div>
-                `).join('');
-            }
-            
-            answerContainer.style.display = 'block';
-            
-            // Smooth scroll to answer
-            answerContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                `
+            )
+            .join("");
         }
 
-        function displaySummary(data) {
-            const summaryContainer = document.getElementById('summaryContainer');
-            const summaryContent = document.getElementById('summaryContent');
-            
-            if (data.summary) {
-                summaryContent.innerHTML = `
+        answerContainer.style.display = "block";
+
+        // Smooth scroll to answer
+        answerContainer.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+
+      function displaySummary(data) {
+        const summaryContainer = document.getElementById("summaryContainer");
+        const summaryContent = document.getElementById("summaryContent");
+
+        if (data.summary) {
+          summaryContent.innerHTML = `
                     <div style="white-space: pre-wrap;">${data.summary}</div>
-                    ${data.statistics ? `
+                    ${
+                      data.statistics
+                        ? `
                         <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                             <h5 style="color: #667eea; margin-bottom: 10px;">📈 Statistics</h5>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
                                 <div>
-                                    <strong>Total Papers:</strong> ${data.statistics.total_papers || 0}
+                                    <strong>Total Papers:</strong> ${
+                                      data.statistics.total_papers || 0
+                                    }
                                 </div>
                                 <div>
-                                    <strong>Concepts:</strong> ${data.statistics.total_concepts || 0}
+                                    <strong>Concepts:</strong> ${
+                                      data.statistics.total_concepts || 0
+                                    }
                                 </div>
                             </div>
                         </div>
-                    ` : ''}
+                    `
+                        : ""
+                    }
                 `;
-                
-                summaryContainer.style.display = 'block';
-                summaryContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+
+          summaryContainer.style.display = "block";
+          summaryContainer.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
         }
+      }
     </script>
-</body>
+  </body>
 </html>

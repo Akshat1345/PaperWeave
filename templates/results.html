@@ -1,604 +1,834 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Research Results - AI Research Assistant</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
 
-        header {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
+      header {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
 
-        header h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
+      header h1 {
+        color: #667eea;
+        margin-bottom: 10px;
+      }
 
-        header .subtitle {
-            color: #666;
-            font-size: 1.1em;
-        }
+      header .subtitle {
+        color: #666;
+        font-size: 1.1em;
+      }
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            overflow-x: auto;
-        }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        overflow-x: auto;
+      }
 
-        .tab-button {
-            padding: 10px 20px;
-            border: 2px solid #ddd;
-            background: white;
-            cursor: pointer;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
+      .tab-button {
+        padding: 10px 20px;
+        border: 2px solid #ddd;
+        background: white;
+        cursor: pointer;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.3s;
+        white-space: nowrap;
+      }
 
-        .tab-button.active {
-            border-color: #667eea;
-            background: #667eea;
-            color: white;
-        }
+      .tab-button.active {
+        border-color: #667eea;
+        background: #667eea;
+        color: white;
+      }
 
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s;
-        }
+      .tab-content {
+        display: none;
+        animation: fadeIn 0.3s;
+      }
 
-        .tab-content.active {
-            display: block;
-        }
+      .tab-content.active {
+        display: block;
+      }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
         }
+        to {
+          opacity: 1;
+        }
+      }
 
-        .paper-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            border-left: 4px solid #667eea;
-        }
+      .paper-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s;
+        border-left: 4px solid #667eea;
+      }
 
-        .paper-card:hover {
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
+      .paper-card:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+      }
 
-        .paper-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+      .paper-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
 
-        .paper-title {
-            color: #667eea;
-            font-size: 1.4em;
-            font-weight: 700;
-            flex: 1;
-            min-width: 300px;
-        }
+      .paper-title {
+        color: #667eea;
+        font-size: 1.4em;
+        font-weight: 700;
+        flex: 1;
+        min-width: 300px;
+      }
 
-        .paper-badges {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+      .paper-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
 
-        .badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
+      .badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 600;
+      }
 
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
-        }
+      .badge-success {
+        background: #d4edda;
+        color: #155724;
+      }
 
-        .badge-primary {
-            background: #cfe2ff;
-            color: #084298;
-        }
+      .badge-primary {
+        background: #cfe2ff;
+        color: #084298;
+      }
 
-        .paper-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #eee;
-        }
+      .paper-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+      }
 
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-        }
+      .meta-item {
+        display: flex;
+        flex-direction: column;
+      }
 
-        .meta-label {
-            color: #999;
-            font-size: 0.9em;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
+      .meta-label {
+        color: #999;
+        font-size: 0.9em;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
 
-        .meta-value {
-            color: #333;
-            font-size: 1em;
-            margin-top: 3px;
-        }
+      .meta-value {
+        color: #333;
+        font-size: 1em;
+        margin-top: 3px;
+      }
 
-        .paper-section {
-            margin-bottom: 25px;
-        }
+      .paper-section {
+        margin-bottom: 25px;
+      }
 
-        .section-title {
-            color: #667eea;
-            font-size: 1.2em;
-            font-weight: 700;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #667eea;
-        }
+      .section-title {
+        color: #667eea;
+        font-size: 1.2em;
+        font-weight: 700;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #667eea;
+      }
 
-        .section-content {
-            color: #555;
-            line-height: 1.8;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-        }
+      .section-content {
+        color: #555;
+        line-height: 1.8;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+      }
 
-        .abstract {
-            color: #666;
-            font-size: 0.95em;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
+      .abstract {
+        color: #666;
+        font-size: 0.95em;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
 
-        .survey-section {
-            background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid #764ba2;
-        }
+      .survey-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border-left: 4px solid #764ba2;
+      }
 
-        .survey-title {
-            color: #764ba2;
-            font-size: 1.1em;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
+      .survey-title {
+        color: #764ba2;
+        font-size: 1.1em;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
 
-        .survey-content {
-            color: #555;
-            line-height: 1.7;
-        }
+      .survey-content {
+        color: #555;
+        line-height: 1.7;
+      }
 
-        .rag-query-box {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
+      .rag-query-box {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      }
 
-        .query-input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+      .query-input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
 
-        .query-input-group input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-        }
+      .query-input-group input {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 1em;
+      }
 
-        .query-input-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+      .query-input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
 
-        .query-button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+      .query-button {
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
 
-        .query-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
+      .query-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
 
-        .query-result {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            margin-top: 15px;
-        }
+      .query-result {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        margin-top: 15px;
+      }
 
-        .query-answer {
-            color: #333;
-            line-height: 1.8;
-            margin-bottom: 15px;
-        }
+      .query-answer {
+        color: #333;
+        line-height: 1.8;
+        margin-bottom: 15px;
+      }
 
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
+      .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
 
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      }
 
-        .stat-number {
-            font-size: 2em;
-            color: #667eea;
-            font-weight: 700;
-        }
+      .stat-number {
+        font-size: 2em;
+        color: #667eea;
+        font-weight: 700;
+      }
 
-        .stat-label {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: 5px;
+      }
 
-        .no-results {
-            background: white;
-            padding: 40px;
-            text-align: center;
-            border-radius: 12px;
-            color: #666;
-        }
+      .no-results {
+        background: white;
+        padding: 40px;
+        text-align: center;
+        border-radius: 12px;
+        color: #666;
+      }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: white;
-        }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: white;
+      }
 
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
-        .confidence-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: 600;
-            margin-top: 10px;
-        }
+      .confidence-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+        margin-top: 10px;
+      }
 
-        .confidence-high {
-            background: #d4edda;
-            color: #155724;
-        }
+      .confidence-high {
+        background: #d4edda;
+        color: #155724;
+      }
 
-        .confidence-medium {
-            background: #fff3cd;
-            color: #856404;
-        }
+      .confidence-medium {
+        background: #fff3cd;
+        color: #856404;
+      }
 
-        .confidence-low {
-            background: #f8d7da;
-            color: #721c24;
-        }
+      .confidence-low {
+        background: #f8d7da;
+        color: #721c24;
+      }
 
-        .source-item {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: white;
-            border-radius: 5px;
-            border-left: 3px solid #667eea;
-        }
+      .source-item {
+        padding: 10px;
+        margin-bottom: 8px;
+        background: white;
+        border-radius: 5px;
+        border-left: 3px solid #667eea;
+      }
 
-        .source-title {
-            font-weight: 600;
-            color: #333;
-        }
+      .source-title {
+        font-weight: 600;
+        color: #333;
+      }
 
-        .source-meta {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 3px;
-        }
+      .source-meta {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 3px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <h1>🔬 Research Results & Analysis</h1>
-            <p class="subtitle">Comprehensive literature surveys and RAG-powered Q&A</p>
-        </header>
+      <header>
+        <h1>🔬 Research Results & Analysis</h1>
+        <p class="subtitle">
+          Comprehensive literature surveys and RAG-powered Q&A
+        </p>
+      </header>
 
-        <div class="tabs">
-            <button class="tab-button active" data-tab="overview">Overview</button>
-            <button class="tab-button" data-tab="papers">Papers & Surveys</button>
-            <button class="tab-button" data-tab="rag-qa">RAG Q&A</button>
+      <div class="tabs">
+        <button class="tab-button active" data-tab="overview">Overview</button>
+        <button class="tab-button" data-tab="overall-survey">Overall Survey</button>
+        <button class="tab-button" data-tab="papers">Papers & Surveys</button>
+        <button class="tab-button" data-tab="rag-qa">RAG Q&A</button>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="overview" class="tab-content active">
+        <div class="summary-stats" id="summaryStats">
+          <div class="stat-card">
+            <div class="stat-number" id="totalPapers">0</div>
+            <div class="stat-label">Total Papers</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="completedPapers">0</div>
+            <div class="stat-label">Completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="totalSurveys">0</div>
+            <div class="stat-label">Surveys Generated</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="indexedChunks">0</div>
+            <div class="stat-label">Indexed Chunks</div>
+          </div>
         </div>
+        <div style="text-align: center; margin-top: 20px;">
+          <button class="query-button" onclick="downloadAllResults()">📥 Download All Results (ZIP)</button>
+        </div>
+      </div>
 
-        <!-- Overview Tab -->
-        <div id="overview" class="tab-content active">
-            <div class="summary-stats" id="summaryStats">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalPapers">0</div>
-                    <div class="stat-label">Total Papers</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="completedPapers">0</div>
-                    <div class="stat-label">Completed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="totalSurveys">0</div>
-                    <div class="stat-label">Surveys Generated</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="indexedChunks">0</div>
-                    <div class="stat-label">Indexed Chunks</div>
-                </div>
+      <!-- Overall Literature Survey Tab -->
+      <div id="overall-survey" class="tab-content">
+        <div class="paper-card">
+          <h2 style="color: #667eea; margin-bottom: 20px;">📚 Overall Literature Survey</h2>
+          <div id="overallSurveyContent">
+            <div class="loading">
+              <div class="spinner"></div>
+              Generating comprehensive literature survey...
             </div>
+          </div>
         </div>
+      </div>
 
-        <!-- Papers & Surveys Tab -->
-        <div id="papers" class="tab-content">
-            <div id="papersList"></div>
-        </div>
+      <!-- Papers & Surveys Tab -->
+      <div id="papers" class="tab-content">
+        <div id="papersList"></div>
+      </div>
 
-        <!-- RAG Q&A Tab -->
-        <div id="rag-qa" class="tab-content">
-            <div class="rag-query-box">
-                <h2>Ask Questions About the Research</h2>
-                <div class="query-input-group">
-                    <input type="text" id="ragQuery" placeholder="e.g., What are the main methodologies used?" />
-                    <button class="query-button" onclick="submitRagQuery()">Ask</button>
-                </div>
-                <div id="ragResult" style="display: none;">
-                    <div class="query-result">
-                        <div class="query-answer" id="ragAnswer"></div>
-                        <div class="confidence-badge" id="confidenceBadge"></div>
-                        <div id="ragSources"></div>
-                    </div>
-                </div>
+      <!-- RAG Q&A Tab -->
+      <div id="rag-qa" class="tab-content">
+        <div class="rag-query-box">
+          <h2>Ask Questions About the Research</h2>
+          <div class="query-input-group">
+            <input
+              type="text"
+              id="ragQuery"
+              placeholder="e.g., What are the main methodologies used?"
+            />
+            <button class="query-button" onclick="submitRagQuery()">Ask</button>
+          </div>
+          <div id="ragResult" style="display: none">
+            <div class="query-result">
+              <div class="query-answer" id="ragAnswer"></div>
+              <div class="confidence-badge" id="confidenceBadge"></div>
+              <div id="ragSources"></div>
             </div>
+          </div>
         </div>
+      </div>
     </div>
 
     <script>
-        document.querySelectorAll('.tab-button').forEach(button => {
-            button.addEventListener('click', function() {
-                const tabName = this.dataset.tab;
-                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                document.getElementById(tabName).classList.add('active');
-                this.classList.add('active');
-            });
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.addEventListener("click", function () {
+          const tabName = this.dataset.tab;
+          document
+            .querySelectorAll(".tab-content")
+            .forEach((tab) => tab.classList.remove("active"));
+          document
+            .querySelectorAll(".tab-button")
+            .forEach((btn) => btn.classList.remove("active"));
+          document.getElementById(tabName).classList.add("active");
+          this.classList.add("active");
         });
+      });
 
-        window.addEventListener('load', loadResults);
+      window.addEventListener("load", loadResults);
 
-        function loadResults() {
-            const jobId = new URLSearchParams(window.location.search).get('job_id');
-            fetch(`/results/comprehensive${jobId ? `?job_id=${jobId}` : ''}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('papersList').innerHTML = '<div class="no-results">No results found</div>';
-                        return;
-                    }
-                    displaySummary(data.summary);
-                    displayPapers(data.results);
-                    loadIndexStats();
-                })
-                .catch(err => {
-                    console.error('Error loading results:', err);
-                    document.getElementById('papersList').innerHTML = '<div class="no-results">Error loading results</div>';
-                });
-        }
-
-        function displaySummary(summary) {
-            document.getElementById('totalPapers').textContent = summary.total_papers;
-            document.getElementById('completedPapers').textContent = summary.completed_papers;
-            document.getElementById('totalSurveys').textContent = summary.papers_with_surveys;
-        }
-
-        function loadIndexStats() {
-            fetch('/rag/index_status')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('indexedChunks').textContent = data.vector_db.total_chunks || 0;
-                })
-                .catch(err => console.error('Error loading index stats:', err));
-        }
-
-        function displayPapers(results) {
-            const container = document.getElementById('papersList');
-            if (!results || results.length === 0) {
-                container.innerHTML = '<div class="no-results">No papers processed yet</div>';
-                return;
+      function loadResults() {
+        const jobId = new URLSearchParams(window.location.search).get("job_id");
+        fetch(`/results/comprehensive${jobId ? `?job_id=${jobId}` : ""}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              document.getElementById("papersList").innerHTML =
+                '<div class="no-results">No results found</div>';
+              return;
             }
+            displaySummary(data.summary);
+            displayPapers(data.results);
+            loadIndexStats();
+          })
+          .catch((err) => {
+            console.error("Error loading results:", err);
+            document.getElementById("papersList").innerHTML =
+              '<div class="no-results">Error loading results</div>';
+          });
+      }
 
-            container.innerHTML = results.map((result, idx) => {
-                const paper = result.paper;
-                const survey = result.survey;
-                const compiled = result.compiled_data;
+      function displaySummary(summary) {
+        document.getElementById("totalPapers").textContent =
+          summary.total_papers;
+        document.getElementById("completedPapers").textContent =
+          summary.completed_papers;
+        document.getElementById("totalSurveys").textContent =
+          summary.papers_with_surveys;
+      }
 
-                return `
+      function loadIndexStats() {
+        fetch("/rag/index_status")
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("indexedChunks").textContent =
+              data.vector_db.total_chunks || 0;
+          })
+          .catch((err) => console.error("Error loading index stats:", err));
+      }
+
+      function displayPapers(results) {
+        const container = document.getElementById("papersList");
+        if (!results || results.length === 0) {
+          container.innerHTML =
+            '<div class="no-results">No papers processed yet</div>';
+          return;
+        }
+
+        container.innerHTML = results
+          .map((result, idx) => {
+            const paper = result.paper;
+            const survey = result.survey;
+            const compiled = result.compiled_data;
+
+            return `
                     <div class="paper-card">
                         <div class="paper-header">
-                            <div class="paper-title">${idx + 1}. ${paper.title}</div>
+                            <div class="paper-title">${idx + 1}. ${
+              paper.title
+            }</div>
                             <div class="paper-badges">
-                                ${paper.status === 'completed' ? '<span class="badge badge-success">✓ Completed</span>' : ''}
-                                ${survey ? '<span class="badge badge-primary">📚 Survey</span>' : ''}
+                                ${
+                                  paper.status === "completed"
+                                    ? '<span class="badge badge-success">✓ Completed</span>'
+                                    : ""
+                                }
+                                ${
+                                  survey
+                                    ? '<span class="badge badge-primary">📚 Survey</span>'
+                                    : ""
+                                }
                             </div>
                         </div>
 
                         <div class="paper-meta">
                             <div class="meta-item">
                                 <span class="meta-label">ArXiv ID</span>
-                                <span class="meta-value">${paper.arxiv_id}</span>
+                                <span class="meta-value">${
+                                  paper.arxiv_id
+                                }</span>
                             </div>
                             <div class="meta-item">
                                 <span class="meta-label">Published</span>
-                                <span class="meta-value">${paper.published_date || 'N/A'}</span>
+                                <span class="meta-value">${
+                                  paper.published_date || "N/A"
+                                }</span>
                             </div>
                             <div class="meta-item">
                                 <span class="meta-label">Citations</span>
-                                <span class="meta-value">${paper.citation_count}</span>
+                                <span class="meta-value">${
+                                  paper.citation_count
+                                }</span>
                             </div>
                         </div>
 
-                        ${paper.abstract ? `
+                        ${
+                          paper.abstract
+                            ? `
                             <div class="paper-section">
                                 <div class="section-title">Abstract</div>
                                 <div class="abstract">${paper.abstract}</div>
                             </div>
-                        ` : ''}
+                        `
+                            : ""
+                        }
 
-                        ${compiled ? `
+                        ${
+                          compiled
+                            ? `
                             <div class="paper-section">
                                 <div class="section-title">Key Contributions</div>
                                 <div class="section-content">
-                                    <strong>Problem:</strong> ${compiled.contributions?.main_problem || 'N/A'}<br><br>
-                                    <strong>Innovation:</strong> ${compiled.contributions?.key_innovation || 'N/A'}<br><br>
-                                    <strong>Results:</strong> ${compiled.contributions?.major_results || 'N/A'}
+                                    <strong>Problem:</strong> ${
+                                      compiled.contributions?.main_problem ||
+                                      "N/A"
+                                    }<br><br>
+                                    <strong>Innovation:</strong> ${
+                                      compiled.contributions?.key_innovation ||
+                                      "N/A"
+                                    }<br><br>
+                                    <strong>Results:</strong> ${
+                                      compiled.contributions?.major_results ||
+                                      "N/A"
+                                    }
                                 </div>
                             </div>
-                        ` : ''}
+                        `
+                            : ""
+                        }
 
-                        ${survey ? `
+                        ${
+                          survey
+                            ? `
+                            <div class="survey-section" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 20%); border-left: 4px solid #667eea; padding: 20px; margin-bottom: 20px;">
+                                <div class="survey-title" style="font-size: 1.3em; font-weight: 700; color: #667eea; margin-bottom: 15px;">
+                                    📚 LITERATURE SURVEY
+                                </div>
+                                <div class="survey-content" style="text-align: justify; line-height: 1.8; color: #2d3748; font-size: 15px;">
+                                    ${survey.literature_survey ? survey.literature_survey : (
+                                      survey.related_work ? `
+                                        <p style="font-style: italic; color: #666;">
+                                          <em>Literature survey is being generated. Showing related work section as preview:</em>
+                                        </p>
+                                        <p>${survey.related_work}</p>
+                                      ` : `
+                                        <p style="color: #999; font-style: italic;">
+                                          Literature survey not yet available. Please check back later.
+                                        </p>
+                                      `
+                                    )}
+                                </div>
+                                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #718096;">
+                                    📖 References cited: ${survey.reference_count || 0}
+                                </div>
+                            </div>
+                            
                             <div class="survey-section">
                                 <div class="survey-title">📖 Related Work</div>
-                                <div class="survey-content">${survey.related_work || 'N/A'}</div>
+                                <div class="survey-content">${
+                                  survey.related_work || "N/A"
+                                }</div>
                             </div>
                             <div class="survey-section">
                                 <div class="survey-title">🔬 Methodology</div>
-                                <div class="survey-content">${survey.methodology_survey || 'N/A'}</div>
+                                <div class="survey-content">${
+                                  survey.methodology_survey || "N/A"
+                                }</div>
                             </div>
                             <div class="survey-section">
                                 <div class="survey-title">💡 Contributions</div>
-                                <div class="survey-content">${survey.contributions_summary || 'N/A'}</div>
+                                <div class="survey-content">${
+                                  survey.contributions_summary || "N/A"
+                                }</div>
                             </div>
                             <div class="survey-section">
                                 <div class="survey-title">🎯 Research Gaps</div>
-                                <div class="survey-content">${survey.research_gaps || 'N/A'}</div>
+                                <div class="survey-content">${
+                                  survey.research_gaps || "N/A"
+                                }</div>
                             </div>
-                        ` : '<div style="text-align: center; padding: 20px; color: #999;">Survey not generated yet</div>'}
+                            <div class="survey-section">
+                                <div class="survey-title">🌍 Context Analysis</div>
+                                <div class="survey-content">${
+                                  survey.context_analysis || "N/A"
+                                }</div>
+                            </div>
+                        `
+                            : '<div style="text-align: center; padding: 20px; color: #999;">Survey not generated yet</div>'
+                        }
                     </div>
                 `;
-            }).join('');
-        }
+          })
+          .join("");
+      }
 
-        function submitRagQuery() {
-            const query = document.getElementById('ragQuery').value.trim();
-            if (!query) return;
+      function submitRagQuery() {
+        const query = document.getElementById("ragQuery").value.trim();
+        if (!query) return;
 
-            const resultDiv = document.getElementById('ragResult');
-            resultDiv.style.display = 'block';
-            document.getElementById('ragAnswer').innerHTML = '<div class="loading"><div class="spinner"></div>Querying papers...</div>';
+        const resultDiv = document.getElementById("ragResult");
+        resultDiv.style.display = "block";
+        document.getElementById("ragAnswer").innerHTML =
+          '<div class="loading"><div class="spinner"></div>Querying papers...</div>';
 
-            fetch('/rag/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: query })
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('ragAnswer').innerHTML = data.answer || 'No answer generated';
-                const badge = document.getElementById('confidenceBadge');
-                const confidenceClass = `confidence-${data.confidence}`;
-                badge.className = `confidence-badge ${confidenceClass}`;
-                badge.textContent = `Confidence: ${data.confidence.toUpperCase()}`;
+        fetch("/rag/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: query }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            document.getElementById("ragAnswer").innerHTML =
+              data.answer || "No answer generated";
+            const badge = document.getElementById("confidenceBadge");
+            const confidenceClass = `confidence-${data.confidence}`;
+            badge.className = `confidence-badge ${confidenceClass}`;
+            badge.textContent = `Confidence: ${data.confidence.toUpperCase()}`;
 
-                if (data.sources && data.sources.length > 0) {
-                    document.getElementById('ragSources').innerHTML = `
+            if (data.sources && data.sources.length > 0) {
+              document.getElementById("ragSources").innerHTML = `
                         <h3>📚 Sources (${data.sources.length})</h3>
                         <div>
-                        ${data.sources.map(s => `
+                        ${data.sources
+                          .map(
+                            (s) => `
                             <div class="source-item">
                                 <div class="source-title">[Paper ${s.paper_number}] ${s.title}</div>
                                 <div class="source-meta">ArXiv: ${s.arxiv_id} | Section: ${s.section}</div>
                             </div>
-                        `).join('')}
+                        `
+                          )
+                          .join("")}
                         </div>
                     `;
-                }
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                document.getElementById('ragAnswer').innerHTML = `Error: ${err.message}`;
-            });
+            }
+          })
+          .catch((err) => {
+            console.error("Error:", err);
+            document.getElementById(
+              "ragAnswer"
+            ).innerHTML = `Error: ${err.message}`;
+          });
+      }
+
+      document.addEventListener("keypress", function (e) {
+        if (e.key === "Enter" && document.activeElement.id === "ragQuery") {
+          submitRagQuery();
+        }
+      });
+
+      let currentJobId = null;
+
+      function downloadAllResults() {
+        const jobId = currentJobId || new URLSearchParams(window.location.search).get("job_id");
+        if (jobId) {
+          window.location.href = `/download_results?job_id=${jobId}`;
+        } else {
+          alert('No job ID found. Please process papers first.');
+        }
+      }
+
+      // Load overall survey when tab is clicked
+      document.querySelector('[data-tab="overall-survey"]').addEventListener('click', function() {
+        loadOverallSurvey();
+      });
+
+      function loadOverallSurvey() {
+        const jobId = currentJobId || new URLSearchParams(window.location.search).get("job_id");
+        if (!jobId) {
+          document.getElementById('overallSurveyContent').innerHTML = 
+            '<div class="no-results">No job found. Please process papers first.</div>';
+          return;
         }
 
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && document.activeElement.id === 'ragQuery') {
-                submitRagQuery();
+        fetch(`/surveys/overall?job_id=${jobId}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              document.getElementById('overallSurveyContent').innerHTML = 
+                `<div class="no-results">Error: ${data.error}</div>`;
+              return;
             }
-        });
+            
+            displayOverallSurvey(data);
+          })
+          .catch(err => {
+            console.error('Error loading overall survey:', err);
+            document.getElementById('overallSurveyContent').innerHTML = 
+              `<div class="no-results">Error loading survey: ${err.message}</div>`;
+          });
+      }
+
+      function displayOverallSurvey(data) {
+        const content = document.getElementById('overallSurveyContent');
+        content.innerHTML = `
+          <div class="paper-section">
+            <div class="section-title">Research Domain & Scope</div>
+            <div class="section-content">${data.domain_scope || 'N/A'}</div>
+          </div>
+          
+          <div class="paper-section">
+            <div class="section-title">Common Methodologies & Approaches</div>
+            <div class="section-content">${data.methodologies || 'N/A'}</div>
+          </div>
+          
+          <div class="paper-section">
+            <div class="section-title">Key Findings & Consensus</div>
+            <div class="section-content">${data.key_findings || 'N/A'}</div>
+          </div>
+          
+          <div class="paper-section">
+            <div class="section-title">Common Challenges & Limitations</div>
+            <div class="section-content">${data.challenges || 'N/A'}</div>
+          </div>
+          
+          <div class="paper-section">
+            <div class="section-title">Research Gaps & Future Directions</div>
+            <div class="section-content">${data.future_directions || 'N/A'}</div>
+          </div>
+          
+          <div class="paper-section">
+            <div class="section-title">Summary Statistics</div>
+            <div class="section-content">
+              <strong>Total Papers Analyzed:</strong> ${data.stats?.total_papers || 0}<br>
+              <strong>Papers with Surveys:</strong> ${data.stats?.papers_with_surveys || 0}<br>
+              <strong>Topic:</strong> ${data.stats?.topic || 'N/A'}
+            </div>
+          </div>
+        `;
+      }
+
+      // Update loadResults to store jobId
+      function loadResults() {
+        const jobId = new URLSearchParams(window.location.search).get("job_id");
+        currentJobId = jobId;
+        fetch(`/results/comprehensive${jobId ? `?job_id=${jobId}` : ""}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              document.getElementById("papersList").innerHTML =
+                '<div class="no-results">No results found</div>';
+              return;
+            }
+            displaySummary(data.summary);
+            displayPapers(data.results);
+            loadIndexStats();
+          })
+          .catch((err) => {
+            console.error("Error loading results:", err);
+            document.getElementById("papersList").innerHTML =
+              '<div class="no-results">Error loading results</div>';
+          });
+      }
     </script>
-</body>
+  </body>
 </html>

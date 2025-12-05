@@ -32,6 +32,16 @@ class DatabaseManager:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
+            # Migration: Add literature_survey column if it doesn't exist
+            try:
+                cursor.execute("PRAGMA table_info(paper_surveys)")
+                columns = [col[1] for col in cursor.fetchall()]
+                if 'literature_survey' not in columns:
+                    cursor.execute("ALTER TABLE paper_surveys ADD COLUMN literature_survey TEXT")
+                    conn.commit()
+            except sqlite3.OperationalError:
+                pass  # Table doesn't exist yet, will be created below
+            
             # Processing Jobs Table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS processing_jobs (
@@ -120,6 +130,7 @@ class DatabaseManager:
                 CREATE TABLE IF NOT EXISTS paper_surveys (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     paper_id INTEGER NOT NULL,
+                    literature_survey TEXT,
                     related_work TEXT,
                     methodology_survey TEXT,
                     contributions_summary TEXT,
@@ -371,11 +382,12 @@ class DatabaseManager:
             
             cursor.execute('''
                 INSERT OR REPLACE INTO paper_surveys (
-                    paper_id, related_work, methodology_survey, 
+                    paper_id, literature_survey, related_work, methodology_survey, 
                     contributions_summary, research_gaps, context_analysis, full_survey_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 paper_id,
+                survey_sections.get('literature_survey', {}).get('content', ''),
                 survey_sections.get('related_work', {}).get('content', ''),
                 survey_sections.get('methodology_survey', {}).get('content', ''),
                 survey_sections.get('contributions_summary', {}).get('content', ''),
@@ -393,8 +405,41 @@ class DatabaseManager:
             
             if row:
                 survey_dict = dict(row)
+                
+                # Try to load full survey JSON if available
                 if survey_dict.get('full_survey_json'):
-                    survey_dict['survey_data'] = json.loads(survey_dict['full_survey_json'])
+                    try:
+                        full_survey = json.loads(survey_dict['full_survey_json'])
+                        
+                        # Extract survey sections from full_survey_json if individual columns are empty
+                        survey_sections = full_survey.get('survey_sections', {})
+                        
+                        if not survey_dict.get('literature_survey') and survey_sections.get('literature_survey'):
+                            survey_dict['literature_survey'] = survey_sections['literature_survey'].get('content', '')
+                        
+                        if not survey_dict.get('related_work') and survey_sections.get('related_work'):
+                            survey_dict['related_work'] = survey_sections['related_work'].get('content', '')
+                        
+                        if not survey_dict.get('methodology_survey') and survey_sections.get('methodology_survey'):
+                            survey_dict['methodology_survey'] = survey_sections['methodology_survey'].get('content', '')
+                        
+                        if not survey_dict.get('contributions_summary') and survey_sections.get('contributions_summary'):
+                            survey_dict['contributions_summary'] = survey_sections['contributions_summary'].get('content', '')
+                        
+                        if not survey_dict.get('research_gaps') and survey_sections.get('research_gaps'):
+                            survey_dict['research_gaps'] = survey_sections['research_gaps'].get('content', '')
+                        
+                        if not survey_dict.get('context_analysis') and survey_sections.get('context_analysis'):
+                            survey_dict['context_analysis'] = survey_sections['context_analysis'].get('content', '')
+                        
+                        # Set reference count if available
+                        if not survey_dict.get('reference_count'):
+                            survey_dict['reference_count'] = full_survey.get('reference_count', 0)
+                        
+                        survey_dict['survey_data'] = full_survey
+                    except json.JSONDecodeError:
+                        pass
+                
                 return survey_dict
             return None
     
