@@ -37,9 +37,9 @@ class BM25Retriever:
         try:
             with db.get_connection() as conn:
                 cursor = conn.cursor()
-                # Get all papers and sections
+                # Get all papers and sections with job_id for filtering
                 cursor.execute('''
-                    SELECT ps.id, p.id as paper_id, ps.section_name, ps.content, p.title, p.arxiv_id
+                    SELECT ps.id, p.id as paper_id, p.job_id, ps.section_name, ps.content, p.title, p.arxiv_id
                     FROM paper_sections ps
                     JOIN papers p ON ps.paper_id = p.id
                 ''')
@@ -47,12 +47,14 @@ class BM25Retriever:
                 for row in cursor.fetchall():
                     doc_id = row['id']
                     paper_id = row['paper_id']
+                    job_id = row['job_id']
                     content = row['content'] or ''
                     section_name = row['section_name']
                     
                     self.documents.append(content)
                     self.document_metadata[doc_id] = {
                         'paper_id': paper_id,
+                        'job_id': job_id,  # Store job_id for filtering
                         'section': section_name,
                         'title': row['title'],
                         'arxiv_id': row['arxiv_id']
@@ -85,13 +87,14 @@ class BM25Retriever:
         tokens = [t for t in tokens if len(t) > 2]
         return tokens
     
-    def search(self, query: str, top_k: int = 20) -> List[Dict]:
+    def search(self, query: str, top_k: int = 20, job_id: Optional[int] = None) -> List[Dict]:
         """
         BM25 search for documents.
         
         Args:
             query: Search query
             top_k: Number of results to return
+            job_id: Optional job ID to filter results
         
         Returns:
             List of search results with BM25 scores
@@ -125,18 +128,32 @@ class BM25Retriever:
                 
                 scores[doc_id] = scores.get(doc_id, 0) + score
         
-        # Sort by score and return top_k
-        sorted_results = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+        # Sort by score
+        sorted_results = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         
+        # Filter by job_id and return top_k
         results = []
         for doc_id, score in sorted_results:
+            metadata = self.document_metadata.get(doc_id, {})
+            
+            # Apply job_id filter for isolation (if job_id provided and metadata has real job_id)
+            if job_id is not None:
+                doc_job_id = metadata.get('job_id', 0)
+                # Only filter if document has a non-zero job_id (meaning it was explicitly set)
+                # If doc_job_id is 0, it's an old document, include it
+                if doc_job_id > 0 and doc_job_id != job_id:
+                    continue
+            
             results.append({
                 'id': f"bm25_{doc_id}",
                 'doc_id': doc_id,
-                'metadata': self.document_metadata.get(doc_id, {}),
+                'metadata': metadata,
                 'bm25_score': score,
                 'relevance_score': min(score / (max(scores.values()) + 1e-10), 1.0)  # Normalize
             })
+            
+            if len(results) >= top_k:
+                break
         
         return results
 
@@ -180,11 +197,11 @@ class HybridRAGEngine:
             processed_query = self._preprocess_query(question)
             logger.debug(f"Processed query: {processed_query}")
             
-            # Step 2: Multi-stage retrieval
-            bm25_results = self._retrieve_bm25(processed_query, top_k=20)
-            semantic_results = self._retrieve_semantic(question, top_k=20, paper_id=specific_paper_id)
+            # Step 2: Multi-stage retrieval with job_id isolation
+            bm25_results = self._retrieve_bm25(processed_query, top_k=20, job_id=job_id)
+            semantic_results = self._retrieve_semantic(question, top_k=20, job_id=job_id, paper_id=specific_paper_id)
             
-            logger.info(f"BM25 results: {len(bm25_results)}, Semantic results: {len(semantic_results)}")
+            logger.info(f"BM25 results: {len(bm25_results)}, Semantic results: {len(semantic_results)} (filtered by job_id={job_id})")
             
             # Step 3: Reciprocal Rank Fusion (RRF)
             fused_results = self._reciprocal_rank_fusion(bm25_results, semantic_results)
@@ -207,7 +224,10 @@ class HybridRAGEngine:
                 }
             
             # Step 6: Enrich with knowledge graph
-            enriched = self._enrich_with_context(final_results)
+            enriched = self._enrich_with_context(final_results, job_id=job_id)
+            
+            # Count knowledge graph enrichments
+            kg_enrichments = sum(1 for r in enriched if r.get('related_papers'))
             
             # Step 7: Build context
             context = self._build_context(enriched)
@@ -222,6 +242,18 @@ class HybridRAGEngine:
                 'after_fusion': len(fused_results),
                 'after_dedup': len(unique_results)
             }
+            
+            # Add knowledge graph usage info
+            answer_data['knowledge_graph'] = {
+                'papers_enriched': kg_enrichments,
+                'total_papers': len(final_results),
+                'graph_used': kg_enrichments > 0,
+                'total_nodes': knowledge_graph.graph.number_of_nodes(),
+                'total_edges': knowledge_graph.graph.number_of_edges()
+            }
+            
+            if kg_enrichments > 0:
+                logger.info(f"🔗 Knowledge graph enriched {kg_enrichments}/{len(final_results)} papers")
             
             logger.info(f"✅ Hybrid RAG completed: {answer_data['confidence']} confidence")
             return answer_data
@@ -248,26 +280,27 @@ class HybridRAGEngine:
         
         return query
     
-    def _retrieve_bm25(self, query: str, top_k: int = 20) -> List[Dict]:
+    def _retrieve_bm25(self, query: str, top_k: int = 20, job_id: Optional[int] = None) -> List[Dict]:
         """Retrieve using BM25 keyword matching."""
         try:
-            results = self.bm25.search(query, top_k=top_k)
-            logger.debug(f"BM25 retrieved {len(results)} results")
+            results = self.bm25.search(query, top_k=top_k, job_id=job_id)
+            logger.debug(f"BM25 retrieved {len(results)} results (job_id={job_id})")
             return results
         except Exception as e:
             logger.warning(f"BM25 retrieval failed: {e}")
             return []
     
     def _retrieve_semantic(self, query: str, top_k: int = 20, 
-                          paper_id: Optional[int] = None) -> List[Dict]:
+                          job_id: Optional[int] = None, paper_id: Optional[int] = None) -> List[Dict]:
         """Retrieve using semantic similarity."""
         try:
             results = vector_db.search(
                 query=query,
                 top_k=top_k,
+                filter_job_id=job_id,
                 filter_paper_id=paper_id
             )
-            logger.debug(f"Semantic search retrieved {len(results)} results")
+            logger.debug(f"Semantic search retrieved {len(results)} results (job_id={job_id})")
             return results
         except Exception as e:
             logger.warning(f"Semantic retrieval failed: {e}")
@@ -431,7 +464,7 @@ Most relevant first."""
         logger.info(f"Deduplicated: {len(results)} -> {len(unique)} results")
         return unique
     
-    def _enrich_with_context(self, results: List[Dict]) -> List[Dict]:
+    def _enrich_with_context(self, results: List[Dict], job_id: Optional[int] = None) -> List[Dict]:
         """Enrich results with knowledge graph and additional context."""
         enriched = []
         
@@ -440,8 +473,8 @@ Most relevant first."""
             
             if paper_id:
                 try:
-                    # Get related papers from knowledge graph
-                    related = knowledge_graph.find_related_papers(paper_id, max_results=3)
+                    # Get related papers from knowledge graph, filtered by job_id
+                    related = knowledge_graph.find_related_papers(paper_id, max_results=3, job_id=job_id)
                     result['related_papers'] = related
                 except:
                     result['related_papers'] = []
@@ -451,7 +484,7 @@ Most relevant first."""
         return enriched
     
     def _build_context(self, results: List[Dict]) -> str:
-        """Build final context from results."""
+        """Build final context from results, enhanced with knowledge graph relationships."""
         from collections import defaultdict
         
         papers = defaultdict(list)
@@ -475,7 +508,17 @@ ArXiv: {metadata.get('arxiv_id', 'N/A')} | Section: {metadata.get('section_type'
 ═══════════════════════════════════════
 """
             content = "\n".join([c.get('text', '') for c in chunks][:3])
-            context_parts.append(paper_header + content)
+            
+            # Add knowledge graph context if available
+            kg_context = ""
+            if first.get('related_papers'):
+                related = first['related_papers']
+                if related:
+                    kg_context = "\n[Related Papers in Graph]: "
+                    for rel in related[:3]:  # Show top 3 related
+                        kg_context += f"\n  • {rel.get('title', 'Unknown')[:60]} ({rel.get('relationship', 'related')})"
+            
+            context_parts.append(paper_header + content + kg_context)
         
         full_context = "\n".join(context_parts)
         
@@ -487,12 +530,23 @@ ArXiv: {metadata.get('arxiv_id', 'N/A')} | Section: {metadata.get('section_type'
         return full_context
     
     def _generate_answer(self, question: str, context: str, sources: List[Dict]) -> Dict:
-        """Generate answer using LLM."""
+        """Generate answer using LLM, leveraging knowledge graph relationships."""
         try:
+            # Extract knowledge graph relationship information from sources
+            kg_info = []
+            for source in sources:
+                if source.get('related_papers'):
+                    for rel in source['related_papers'][:2]:
+                        kg_info.append(f"• {source['metadata'].get('title', 'Paper')[:40]} connects to {rel.get('title', 'Unknown')[:40]} via {rel.get('relationship', 'relationship')}")
+            
+            kg_section = ""
+            if kg_info:
+                kg_section = f"\n\nKNOWLEDGE GRAPH CONNECTIONS:\n" + "\n".join(kg_info[:5])
+            
             prompt = f"""You are a research expert analyzing scientific papers. Answer the following question based ONLY on the provided research context.
 
 CONTEXT FROM RESEARCH PAPERS:
-{context}
+{context}{kg_section}
 
 QUESTION: {question}
 
@@ -500,8 +554,10 @@ INSTRUCTIONS:
 1. Answer comprehensively using information from the papers
 2. Cite specific papers: [Paper Title - ArXiv ID]
 3. If papers provide different perspectives, mention all
-4. Be specific about methods, results, and findings
-5. If information is insufficient, clearly state it
+4. Use knowledge graph connections to show how papers relate to each other
+5. Be specific about methods, results, and findings
+6. If information is insufficient, clearly state it
+7. When multiple papers address the same topic, discuss their relationships and differences
 
 ANSWER:"""
 
@@ -531,7 +587,8 @@ ANSWER:"""
                 'answer': answer,
                 'confidence': confidence,
                 'papers_analyzed': papers_cited,
-                'average_score': avg_score
+                'average_score': avg_score,
+                'relationships_used': len(kg_info) > 0
             }
             
         except Exception as e:

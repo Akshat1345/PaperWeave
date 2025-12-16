@@ -380,7 +380,7 @@
   <body>
     <div class="container">
       <header>
-        <h1>🔬 Research Results & Analysis</h1>
+        <h1>Autonomous Multi-Agent Orchestration for Complex Task Reasoning</h1>
         <p class="subtitle">
           Comprehensive literature surveys and RAG-powered Q&A
         </p>
@@ -388,7 +388,9 @@
 
       <div class="tabs">
         <button class="tab-button active" data-tab="overview">Overview</button>
-        <button class="tab-button" data-tab="overall-survey">Overall Survey</button>
+        <button class="tab-button" data-tab="overall-survey">
+          Overall Survey
+        </button>
         <button class="tab-button" data-tab="papers">Papers & Surveys</button>
         <button class="tab-button" data-tab="rag-qa">RAG Q&A</button>
       </div>
@@ -413,15 +415,29 @@
             <div class="stat-label">Indexed Chunks</div>
           </div>
         </div>
-        <div style="text-align: center; margin-top: 20px;">
-          <button class="query-button" onclick="downloadAllResults()">📥 Download All Results (ZIP)</button>
+        <!-- <div
+          style="
+            font-size: larger;
+            text-align: center;
+            margin-top: 20px;
+            color: #cfe2ff;
+          "
+        >
+          <p>Topic: <span id="topicName">Unknown</span></p>
+        </div> -->
+        <div style="text-align: center; margin-top: 20px">
+          <button class="query-button" onclick="downloadAllResults()">
+            📥 Download All Results (ZIP)
+          </button>
         </div>
       </div>
 
       <!-- Overall Literature Survey Tab -->
       <div id="overall-survey" class="tab-content">
         <div class="paper-card">
-          <h2 style="color: #667eea; margin-bottom: 20px;">📚 Overall Literature Survey</h2>
+          <h2 style="color: #667eea; margin-bottom: 20px">
+            📚 Overall Literature Survey
+          </h2>
           <div id="overallSurveyContent">
             <div class="loading">
               <div class="spinner"></div>
@@ -614,21 +630,27 @@
                                     📚 LITERATURE SURVEY
                                 </div>
                                 <div class="survey-content" style="text-align: justify; line-height: 1.8; color: #2d3748; font-size: 15px;">
-                                    ${survey.literature_survey ? survey.literature_survey : (
-                                      survey.related_work ? `
+                                    ${
+                                      survey.literature_survey
+                                        ? survey.literature_survey
+                                        : survey.related_work
+                                        ? `
                                         <p style="font-style: italic; color: #666;">
                                           <em>Literature survey is being generated. Showing related work section as preview:</em>
                                         </p>
                                         <p>${survey.related_work}</p>
-                                      ` : `
+                                      `
+                                        : `
                                         <p style="color: #999; font-style: italic;">
                                           Literature survey not yet available. Please check back later.
                                         </p>
                                       `
-                                    )}
+                                    }
                                 </div>
                                 <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #718096;">
-                                    📖 References cited: ${survey.reference_count || 0}
+                                    📖 References cited: ${
+                                      survey.reference_count || 0
+                                    }
                                 </div>
                             </div>
                             
@@ -675,6 +697,15 @@
         const query = document.getElementById("ragQuery").value.trim();
         if (!query) return;
 
+        // Get job_id from currentJobId or URL parameter
+        const jobId =
+          currentJobId ||
+          new URLSearchParams(window.location.search).get("job_id");
+        if (!jobId) {
+          alert("No job ID found. Please process papers first.");
+          return;
+        }
+
         const resultDiv = document.getElementById("ragResult");
         resultDiv.style.display = "block";
         document.getElementById("ragAnswer").innerHTML =
@@ -683,16 +714,20 @@
         fetch("/rag/query", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: query }),
+          body: JSON.stringify({
+            question: query,
+            job_id: parseInt(jobId),
+          }),
         })
           .then((res) => res.json())
           .then((data) => {
             document.getElementById("ragAnswer").innerHTML =
               data.answer || "No answer generated";
             const badge = document.getElementById("confidenceBadge");
-            const confidenceClass = `confidence-${data.confidence}`;
+            const confidence = data.confidence || "low";
+            const confidenceClass = `confidence-${confidence}`;
             badge.className = `confidence-badge ${confidenceClass}`;
-            badge.textContent = `Confidence: ${data.confidence.toUpperCase()}`;
+            badge.textContent = `Confidence: ${confidence.toUpperCase()}`;
 
             if (data.sources && data.sources.length > 0) {
               document.getElementById("ragSources").innerHTML = `
@@ -729,79 +764,93 @@
       let currentJobId = null;
 
       function downloadAllResults() {
-        const jobId = currentJobId || new URLSearchParams(window.location.search).get("job_id");
+        const jobId =
+          currentJobId ||
+          new URLSearchParams(window.location.search).get("job_id");
         if (jobId) {
           window.location.href = `/download_results?job_id=${jobId}`;
         } else {
-          alert('No job ID found. Please process papers first.');
+          alert("No job ID found. Please process papers first.");
         }
       }
 
       // Load overall survey when tab is clicked
-      document.querySelector('[data-tab="overall-survey"]').addEventListener('click', function() {
-        loadOverallSurvey();
-      });
+      document
+        .querySelector('[data-tab="overall-survey"]')
+        .addEventListener("click", function () {
+          loadOverallSurvey();
+        });
 
       function loadOverallSurvey() {
-        const jobId = currentJobId || new URLSearchParams(window.location.search).get("job_id");
+        const jobId =
+          currentJobId ||
+          new URLSearchParams(window.location.search).get("job_id");
         if (!jobId) {
-          document.getElementById('overallSurveyContent').innerHTML = 
+          document.getElementById("overallSurveyContent").innerHTML =
             '<div class="no-results">No job found. Please process papers first.</div>';
           return;
         }
 
         fetch(`/surveys/overall?job_id=${jobId}`)
-          .then(res => res.json())
-          .then(data => {
+          .then((res) => res.json())
+          .then((data) => {
             if (data.error) {
-              document.getElementById('overallSurveyContent').innerHTML = 
-                `<div class="no-results">Error: ${data.error}</div>`;
+              document.getElementById(
+                "overallSurveyContent"
+              ).innerHTML = `<div class="no-results">Error: ${data.error}</div>`;
               return;
             }
-            
+
             displayOverallSurvey(data);
           })
-          .catch(err => {
-            console.error('Error loading overall survey:', err);
-            document.getElementById('overallSurveyContent').innerHTML = 
-              `<div class="no-results">Error loading survey: ${err.message}</div>`;
+          .catch((err) => {
+            console.error("Error loading overall survey:", err);
+            document.getElementById(
+              "overallSurveyContent"
+            ).innerHTML = `<div class="no-results">Error loading survey: ${err.message}</div>`;
           });
       }
 
       function displayOverallSurvey(data) {
-        const content = document.getElementById('overallSurveyContent');
+        const content = document.getElementById("overallSurveyContent");
         content.innerHTML = `
           <div class="paper-section">
             <div class="section-title">Research Domain & Scope</div>
-            <div class="section-content">${data.domain_scope || 'N/A'}</div>
+            <div class="section-content">${data.domain_scope || "N/A"}</div>
           </div>
           
           <div class="paper-section">
             <div class="section-title">Common Methodologies & Approaches</div>
-            <div class="section-content">${data.methodologies || 'N/A'}</div>
+            <div class="section-content">${data.methodologies || "N/A"}</div>
           </div>
           
           <div class="paper-section">
             <div class="section-title">Key Findings & Consensus</div>
-            <div class="section-content">${data.key_findings || 'N/A'}</div>
+            <div class="section-content">${data.key_findings || "N/A"}</div>
           </div>
           
           <div class="paper-section">
             <div class="section-title">Common Challenges & Limitations</div>
-            <div class="section-content">${data.challenges || 'N/A'}</div>
+            <div class="section-content">${data.challenges || "N/A"}</div>
           </div>
           
           <div class="paper-section">
             <div class="section-title">Research Gaps & Future Directions</div>
-            <div class="section-content">${data.future_directions || 'N/A'}</div>
+            <div class="section-content">${
+              data.future_directions || "N/A"
+            }</div>
           </div>
           
           <div class="paper-section">
             <div class="section-title">Summary Statistics</div>
             <div class="section-content">
-              <strong>Total Papers Analyzed:</strong> ${data.stats?.total_papers || 0}<br>
-              <strong>Papers with Surveys:</strong> ${data.stats?.papers_with_surveys || 0}<br>
-              <strong>Topic:</strong> ${data.stats?.topic || 'N/A'}
+              <strong>Total Papers Analyzed:</strong> ${
+                data.stats?.total_papers || 0
+              }<br>
+              <strong>Papers with Surveys:</strong> ${
+                data.stats?.papers_with_surveys || 0
+              }<br>
+              <strong>Topic:</strong> ${data.stats?.topic || "N/A"}
             </div>
           </div>
         `;

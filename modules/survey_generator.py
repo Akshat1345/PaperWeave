@@ -21,13 +21,14 @@ class LiteratureSurveyGenerator:
         self.model = config.OLLAMA_MODEL
         logger.info("Literature Survey Generator initialized")
     
-    def generate_survey_for_paper(self, paper_id: int, paper_data: Dict) -> Dict:
+    def generate_survey_for_paper(self, paper_id: int, paper_data: Dict, job_id: Optional[int] = None) -> Dict:
         """
         Generate a comprehensive literature survey for a specific paper.
         
         Args:
             paper_id: Database paper ID
             paper_data: Complete compiled paper data
+            job_id: Optional job_id to filter references by job context
         
         Returns:
             Survey data with multiple sections
@@ -67,9 +68,9 @@ class LiteratureSurveyGenerator:
                 title, metadata, contributions
             )
             
-            # Step 6: Generate Academic Literature Survey (NEW)
+            # Step 6: Generate Academic Literature Survey with job-filtered citations
             literature_survey = self._generate_literature_survey(
-                title, abstract, sections_text, references
+                title, abstract, sections_text, references, job_id=job_id
             )
             
             survey = {
@@ -310,11 +311,13 @@ FORMAT AS ACADEMIC PROSE:"""
             }
     
     def _generate_literature_survey(self, title: str, abstract: str, 
-                                    sections_text: Dict, references: List) -> Dict:
+                                    sections_text: Dict, references: List,
+                                    job_id: Optional[int] = None) -> Dict:
         """
         Generate academic-style Literature Survey section.
         This creates a dense, citation-heavy narrative review of related work,
         similar to the Literature Survey sections in IEEE conference papers.
+        Only uses citations from papers in the same job.
         """
         try:
             # Extract introduction and related work sections
@@ -325,17 +328,32 @@ FORMAT AS ACADEMIC PROSE:"""
             survey_content = "\n".join(relevant_sections.values())[:3000]
             
             # Extract reference titles/context if available
+            # Only use references from this paper (since we're generating for individual papers)
             ref_context = ""
+            ref_mapping = {}  # Map real citation indices to display indices
             if references:
                 ref_list = []
-                for i, ref in enumerate(references[:20], 1):  # Limit to first 20
+                # Limit to references available in this paper
+                max_refs = min(len(references), 20)
+                for i, ref in enumerate(references[:max_refs], 1):
+                    ref_mapping[i] = i  # Direct mapping for this paper's refs
                     if isinstance(ref, dict):
                         ref_title = ref.get('title', 'Unknown')
-                        ref_list.append(f"[{i}] {ref_title}")
+                        ref_authors = ref.get('authors', [])
+                        author_str = ""
+                        if ref_authors:
+                            if len(ref_authors) == 1:
+                                author_str = ref_authors[0].split()[-1]  # Last name
+                            elif len(ref_authors) == 2:
+                                author_str = f"{ref_authors[0].split()[-1]} and {ref_authors[1].split()[-1]}"
+                            else:
+                                author_str = f"{ref_authors[0].split()[-1]} et al."
+                        ref_list.append(f"[{i}] {author_str}: {ref_title[:80]}" if author_str else f"[{i}] {ref_title[:80]}")
                     elif isinstance(ref, str):
                         ref_list.append(f"[{i}] {ref[:100]}")
                 ref_context = "\n".join(ref_list)
             
+            # Create prompt that tells LLM to ONLY use citations that exist
             prompt = f"""You are writing the LITERATURE SURVEY section for an IEEE conference research paper.
 
 PAPER TITLE: {title}
@@ -345,26 +363,34 @@ ABSTRACT: {abstract}
 RELATED WORK CONTENT FROM PAPER:
 {survey_content}
 
-REFERENCES CITED:
-{ref_context}
+REFERENCES AVAILABLE IN THIS PAPER (use ONLY these):
+{ref_context if ref_context else "No external references available - focus on the paper's own contributions"}
+
+CRITICAL INSTRUCTIONS:
+- ONLY use citation numbers from the references listed above
+- If there are {len(references)} references, ONLY use citations [1] through [{len(references)}]
+- DO NOT create fake citations like [7] if only 3 references exist
+- If no external references available, write about the paper's own work and methodologies
+- Each citation used MUST correspond to a reference in the list above
 
 Generate a comprehensive LITERATURE SURVEY section following this style:
 - Write in dense, flowing academic prose (like IEEE papers)
-- Discuss multiple related works in each sentence using citations [1], [2], [3], etc.
+- Discuss multiple related works in each sentence using ONLY available citations
 - Cover the progression of research in this domain
 - Mention specific techniques, algorithms, models, and approaches
-- Include author names when introducing key work (e.g., "Zhou et al. [9] proposed...")
+- Include author names when introducing key work if available
 - Discuss results, accuracies, and performance metrics when mentioned
 - Connect different works showing how the field evolved
-- Write 3-4 substantial paragraphs with multiple citations per sentence
+- Write 2-3 substantial paragraphs with multiple citations per sentence
 - Use transitions like "In recent years", "Several studies", "Furthermore", "Additionally"
 - End with current challenges or limitations in existing approaches
 
-IMPORTANT: 
-- Use citation numbers [1], [2], [3] extensively throughout
+IMPORTANT:
+- Use ONLY citation numbers [1] through [{len(references)}] if references exist
 - Make it read like a real literature survey from an IEEE paper
 - Be specific about techniques and results
 - Keep the narrative flowing naturally from one work to another
+- If citations are limited, focus on synthesizing the paper's own contributions
 
 Write ONLY the literature survey content (no headers or section titles):"""
 
@@ -383,6 +409,7 @@ Write ONLY the literature survey content (no headers or section titles):"""
                 'content': content,
                 'section_type': 'literature_survey',
                 'reference_count': len(references),
+                'max_citation': len(references),  # Track max citation used
                 'style': 'academic_ieee'
             }
             
@@ -412,7 +439,8 @@ Write ONLY the literature survey content (no headers or section titles):"""
                     with open(paper['compiled_json_path'], 'r', encoding='utf-8') as f:
                         paper_data = json.load(f)
                     
-                    survey = self.generate_survey_for_paper(paper['id'], paper_data)
+                    # Pass job_id to generate survey with job context
+                    survey = self.generate_survey_for_paper(paper['id'], paper_data, job_id=job_id)
                     all_surveys.append(survey)
                     
                     # Save survey to database

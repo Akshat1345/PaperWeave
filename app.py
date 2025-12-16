@@ -427,25 +427,30 @@ def rag_query():
     Request body:
     {
         "question": "What are the main challenges?",
-        "paper_id": 1  // optional
+        "job_id": 11,  // required - to filter papers by job
+        "paper_id": 1  // optional - to query specific paper
     }
     """
     try:
         data = request.json
         question = data.get('question', '').strip()
+        job_id = data.get('job_id')
         paper_id = data.get('paper_id')
         
-        logger.info(f"📝 Hybrid RAG Query received: '{question}'")
+        logger.info(f"📝 Hybrid RAG Query received: '{question}' for job_id={job_id}")
         
         if not question:
             return jsonify({'error': 'Question is required'}), 400
+        
+        if not job_id:
+            return jsonify({'error': 'job_id is required to filter results'}), 400
         
         # Check if vector DB has data
         stats = vector_db.get_statistics()
         if stats.get('total_chunks', 0) == 0:
             logger.warning("⚠️  Vector DB is empty!")
             return jsonify({
-                'answer': 'No papers have been indexed yet. Please click "Reindex All Papers" button first.',
+                'answer': 'No papers have been indexed yet. Please process some papers first.',
                 'sources': [],
                 'confidence': 'low',
                 'error': 'vector_db_empty'
@@ -453,8 +458,8 @@ def rag_query():
         
         logger.info(f"📊 Vector DB has {stats.get('total_chunks')} chunks from {stats.get('unique_papers')} papers")
         
-        # Query Hybrid RAG engine
-        result = hybrid_rag_engine.query(question, specific_paper_id=paper_id)
+        # Query Hybrid RAG engine with job_id for isolation
+        result = hybrid_rag_engine.query(question, job_id=job_id, specific_paper_id=paper_id)
         
         logger.info(f"✅ Hybrid RAG query completed: {len(result.get('sources', []))} sources")
         
@@ -955,6 +960,25 @@ def process_papers_background(job_id: int, topic: str, num_papers: int):
                             db.save_paper_references(paper_id, result['references'])
                         except Exception as e:
                             logger.error(f"Error saving references: {e}")
+                    
+                    # Automatically index paper in vector DB
+                    try:
+                        chunks = vector_db.index_paper(paper_id, result)
+                        logger.info(f"Indexed {chunks} chunks for paper {paper_id}")
+                    except Exception as e:
+                        logger.error(f"Error indexing paper {paper_id}: {e}")
+                    
+                    # Automatically add paper to knowledge graph
+                    try:
+                        knowledge_graph.add_paper(paper_id, result)
+                        logger.info(f"Added paper {paper_id} to knowledge graph")
+                        
+                        # Link citations if available
+                        if result.get('references'):
+                            knowledge_graph.link_citations(paper_id, result['references'])
+                            logger.info(f"Linked citations for paper {paper_id}")
+                    except Exception as e:
+                        logger.error(f"Error adding paper to knowledge graph: {e}")
                 else:
                     db.update_paper_compilation(paper_id, None, 'failed')
                     

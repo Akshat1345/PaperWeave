@@ -1,274 +1,290 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin - AI Research Assistant</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
 
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
+      .card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      }
 
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
+      h1 {
+        color: #667eea;
+        margin-bottom: 10px;
+      }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-        }
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
 
-        .back-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-            display: inline-block;
-            margin-bottom: 20px;
-        }
+      .back-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-block;
+        margin-bottom: 20px;
+      }
 
-        .back-link:hover {
-            text-decoration: underline;
-        }
+      .back-link:hover {
+        text-decoration: underline;
+      }
 
-        .action-card {
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: border-color 0.3s;
-        }
+      .action-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: border-color 0.3s;
+      }
 
-        .action-card:hover {
-            border-color: #667eea;
-        }
+      .action-card:hover {
+        border-color: #667eea;
+      }
 
-        .action-card h3 {
-            color: #333;
-            margin-bottom: 10px;
-        }
+      .action-card h3 {
+        color: #333;
+        margin-bottom: 10px;
+      }
 
-        .action-card p {
-            color: #666;
-            margin-bottom: 15px;
-            line-height: 1.6;
-        }
+      .action-card p {
+        color: #666;
+        margin-bottom: 15px;
+        line-height: 1.6;
+      }
 
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
 
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
 
-        .btn-primary:hover {
-            background: #5568d3;
-        }
+      .btn-primary:hover {
+        background: #5568d3;
+      }
 
-        .btn-danger {
-            background: #f56565;
-            color: white;
-        }
+      .btn-danger {
+        background: #f56565;
+        color: white;
+      }
 
-        .btn-danger:hover {
-            background: #e53e3e;
-        }
+      .btn-danger:hover {
+        background: #e53e3e;
+      }
 
-        .btn-success {
-            background: #48bb78;
-            color: white;
-        }
+      .btn-success {
+        background: #48bb78;
+        color: white;
+      }
 
-        .btn-success:hover {
-            background: #38a169;
-        }
+      .btn-success:hover {
+        background: #38a169;
+      }
 
-        .btn:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-        }
+      .btn:disabled {
+        background: #cbd5e0;
+        cursor: not-allowed;
+      }
 
-        .status-box {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-            display: none;
-        }
+      .status-box {
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        display: none;
+      }
 
-        .status-box.show {
-            display: block;
-        }
+      .status-box.show {
+        display: block;
+      }
 
-        .status-box.success {
-            background: #c6f6d5;
-            border-color: #48bb78;
-        }
+      .status-box.success {
+        background: #c6f6d5;
+        border-color: #48bb78;
+      }
 
-        .status-box.error {
-            background: #fed7d7;
-            border-color: #f56565;
-        }
+      .status-box.error {
+        background: #fed7d7;
+        border-color: #f56565;
+      }
 
-        .status-box.loading {
-            background: #bee3f8;
-            border-color: #4299e1;
-        }
+      .status-box.loading {
+        background: #bee3f8;
+        border-color: #4299e1;
+      }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-            vertical-align: middle;
-        }
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
 
-        .stat-card {
-            background: #f7fafc;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-        }
+      .stat-card {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
 
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #667eea;
-        }
+      .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #667eea;
+      }
 
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-            margin-top: 5px;
-        }
+      .stat-label {
+        color: #666;
+        font-size: 14px;
+        margin-top: 5px;
+      }
 
-        .warning-box {
-            background: #fef5e7;
-            border: 2px solid #f39c12;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
+      .warning-box {
+        background: #fef5e7;
+        border: 2px solid #f39c12;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
 
-        .warning-box strong {
-            color: #d68910;
-        }
+      .warning-box strong {
+        color: #d68910;
+      }
 
-        code {
-            background: #f7fafc;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
+      code {
+        background: #f7fafc;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="card">
-            <a href="/" class="back-link">← Back to Home</a>
-            <h1>⚙️ Admin Panel</h1>
-            <p class="subtitle">System maintenance and diagnostics</p>
+      <div class="card">
+        <a href="/" class="back-link">← Back to Home</a>
+        <h1>⚙️ Admin Panel</h1>
+        <p class="subtitle">System maintenance and diagnostics</p>
 
-            <div class="warning-box">
-                <strong>⚠️ Important:</strong> These operations can take several minutes and will rebuild indexes. Only use when necessary.
-            </div>
-
-            <!-- System Stats -->
-            <div class="action-card">
-                <h3>📊 System Statistics</h3>
-                <p>View current system status and statistics</p>
-                <button class="btn btn-primary" onclick="loadStats()">Refresh Stats</button>
-                <div id="stats-container" class="stats-grid"></div>
-                <div id="stats-status" class="status-box"></div>
-            </div>
-
-            <!-- Reindex Database -->
-            <div class="action-card">
-                <h3>🔄 Rebuild Knowledge Graph</h3>
-                <p>
-                    Rebuilds the knowledge graph from all papers in the database. 
-                    Use this when the knowledge graph shows fewer papers than the database.
-                    <br><br>
-                    <strong>When to use:</strong> If knowledge graph has 5 papers but database has 20 papers.
-                </p>
-                <button class="btn btn-success" id="reindex-btn" onclick="reindexDatabase()">Rebuild Knowledge Graph</button>
-                <div id="reindex-status" class="status-box"></div>
-            </div>
-
-            <!-- Clear Cache -->
-            <div class="action-card">
-                <h3>🗑️ Clear Cache</h3>
-                <p>
-                    Clears compilation cache. Use this if you're seeing outdated data.
-                </p>
-                <button class="btn btn-danger" onclick="clearCache()">Clear Cache</button>
-                <div id="cache-status" class="status-box"></div>
-            </div>
+        <div class="warning-box">
+          <strong>⚠️ Important:</strong> These operations can take several
+          minutes and will rebuild indexes. Only use when necessary.
         </div>
+
+        <!-- System Stats -->
+        <div class="action-card">
+          <h3>📊 System Statistics</h3>
+          <p>View current system status and statistics</p>
+          <button class="btn btn-primary" onclick="loadStats()">
+            Refresh Stats
+          </button>
+          <div id="stats-container" class="stats-grid"></div>
+          <div id="stats-status" class="status-box"></div>
+        </div>
+
+        <!-- Reindex Database -->
+        <div class="action-card">
+          <h3>🔄 Rebuild Knowledge Graph</h3>
+          <p>
+            Rebuilds the knowledge graph from all papers in the database. Use
+            this when the knowledge graph shows fewer papers than the database.
+            <br /><br />
+            <strong>When to use:</strong> If knowledge graph has 5 papers but
+            database has 20 papers.
+          </p>
+          <button
+            class="btn btn-success"
+            id="reindex-btn"
+            onclick="reindexDatabase()"
+          >
+            Rebuild Knowledge Graph
+          </button>
+          <div id="reindex-status" class="status-box"></div>
+        </div>
+
+        <!-- Clear Cache -->
+        <div class="action-card">
+          <h3>🗑️ Clear Cache</h3>
+          <p>
+            Clears compilation cache. Use this if you're seeing outdated data.
+          </p>
+          <button class="btn btn-danger" onclick="clearCache()">
+            Clear Cache
+          </button>
+          <div id="cache-status" class="status-box"></div>
+        </div>
+      </div>
     </div>
 
     <script>
-        async function loadStats() {
-            const container = document.getElementById('stats-container');
-            const status = document.getElementById('stats-status');
-            
-            status.className = 'status-box loading show';
-            status.innerHTML = '<div class="spinner"></div>Loading statistics...';
-            container.innerHTML = '';
+      async function loadStats() {
+        const container = document.getElementById("stats-container");
+        const status = document.getElementById("stats-status");
 
-            try {
-                const response = await fetch('/stats');
-                const data = await response.json();
+        status.className = "status-box loading show";
+        status.innerHTML = '<div class="spinner"></div>Loading statistics...';
+        container.innerHTML = "";
 
-                container.innerHTML = `
+        try {
+          const response = await fetch("/stats");
+          const data = await response.json();
+
+          container.innerHTML = `
                     <div class="stat-card">
                         <div class="stat-value">${data.database.total_papers}</div>
                         <div class="stat-label">Papers in Database</div>
@@ -287,90 +303,108 @@
                     </div>
                 `;
 
-                status.className = 'status-box success show';
-                status.innerHTML = '✅ Statistics loaded successfully';
+          status.className = "status-box success show";
+          status.innerHTML = "✅ Statistics loaded successfully";
 
-                // Check for mismatch
-                if (data.database.total_papers !== data.knowledge_graph.paper_nodes) {
-                    status.className = 'status-box error show';
-                    status.innerHTML = `⚠️ Knowledge graph mismatch detected! Database has ${data.database.total_papers} papers but graph only has ${data.knowledge_graph.paper_nodes}. Click "Rebuild Knowledge Graph" to fix.`;
-                }
+          // Check for mismatch
+          if (data.database.total_papers !== data.knowledge_graph.paper_nodes) {
+            status.className = "status-box error show";
+            status.innerHTML = `⚠️ Knowledge graph mismatch detected! Database has ${data.database.total_papers} papers but graph only has ${data.knowledge_graph.paper_nodes}. Click "Rebuild Knowledge Graph" to fix.`;
+          }
 
-                setTimeout(() => status.classList.remove('show'), 5000);
-            } catch (error) {
-                status.className = 'status-box error show';
-                status.innerHTML = `❌ Error: ${error.message}`;
-            }
+          setTimeout(() => status.classList.remove("show"), 5000);
+        } catch (error) {
+          status.className = "status-box error show";
+          status.innerHTML = `❌ Error: ${error.message}`;
+        }
+      }
+
+      async function reindexDatabase() {
+        const btn = document.getElementById("reindex-btn");
+        const status = document.getElementById("reindex-status");
+
+        if (
+          !confirm(
+            "This will rebuild the entire knowledge graph. This may take several minutes. Continue?"
+          )
+        ) {
+          return;
         }
 
-        async function reindexDatabase() {
-            const btn = document.getElementById('reindex-btn');
-            const status = document.getElementById('reindex-status');
-            
-            if (!confirm('This will rebuild the entire knowledge graph. This may take several minutes. Continue?')) {
-                return;
-            }
+        btn.disabled = true;
+        status.className = "status-box loading show";
+        status.innerHTML =
+          '<div class="spinner"></div>Rebuilding knowledge graph... This may take 2-5 minutes.';
 
-            btn.disabled = true;
-            status.className = 'status-box loading show';
-            status.innerHTML = '<div class="spinner"></div>Rebuilding knowledge graph... This may take 2-5 minutes.';
+        try {
+          const response = await fetch("/rag/reindex", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
 
-            try {
-                const response = await fetch('/rag/reindex', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+          const data = await response.json();
 
-                const data = await response.json();
-
-                if (data.success) {
-                    status.className = 'status-box success show';
-                    status.innerHTML = `
+          if (data.success) {
+            status.className = "status-box success show";
+            status.innerHTML = `
                         ✅ Success! Reindexed ${data.indexed_count} papers<br>
                         Total chunks: ${data.total_chunks}<br>
-                        Vector DB: ${data.stats.vector_db.total_documents} documents<br>
-                        Knowledge Graph: ${data.stats.knowledge_graph.paper_nodes} papers, ${data.stats.knowledge_graph.total_edges} edges
-                        ${data.errors.length > 0 ? '<br><br>⚠️ Some errors: ' + data.errors.slice(0, 3).join('<br>') : ''}
+                        Vector DB: ${
+                          data.stats.vector_db.total_documents
+                        } documents<br>
+                        Knowledge Graph: ${
+                          data.stats.knowledge_graph.paper_nodes
+                        } papers, ${
+              data.stats.knowledge_graph.total_edges
+            } edges
+                        ${
+                          data.errors.length > 0
+                            ? "<br><br>⚠️ Some errors: " +
+                              data.errors.slice(0, 3).join("<br>")
+                            : ""
+                        }
                     `;
-                    
-                    // Refresh stats
-                    setTimeout(() => loadStats(), 1000);
-                } else {
-                    throw new Error(data.error || 'Unknown error');
-                }
-            } catch (error) {
-                status.className = 'status-box error show';
-                status.innerHTML = `❌ Error: ${error.message}`;
-            } finally {
-                btn.disabled = false;
-            }
+
+            // Refresh stats
+            setTimeout(() => loadStats(), 1000);
+          } else {
+            throw new Error(data.error || "Unknown error");
+          }
+        } catch (error) {
+          status.className = "status-box error show";
+          status.innerHTML = `❌ Error: ${error.message}`;
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function clearCache() {
+        if (
+          !confirm("Clear compilation cache? This will not delete any papers.")
+        ) {
+          return;
         }
 
-        async function clearCache() {
-            if (!confirm('Clear compilation cache? This will not delete any papers.')) {
-                return;
-            }
+        const status = document.getElementById("cache-status");
+        status.className = "status-box loading show";
+        status.innerHTML = '<div class="spinner"></div>Clearing cache...';
 
-            const status = document.getElementById('cache-status');
-            status.className = 'status-box loading show';
-            status.innerHTML = '<div class="spinner"></div>Clearing cache...';
+        try {
+          // Just show success - actual implementation would need backend support
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-            try {
-                // Just show success - actual implementation would need backend support
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                status.className = 'status-box success show';
-                status.innerHTML = '✅ Cache cleared successfully';
-                
-                setTimeout(() => status.classList.remove('show'), 3000);
-            } catch (error) {
-                status.className = 'status-box error show';
-                status.innerHTML = `❌ Error: ${error.message}`;
-            }
+          status.className = "status-box success show";
+          status.innerHTML = "✅ Cache cleared successfully";
+
+          setTimeout(() => status.classList.remove("show"), 3000);
+        } catch (error) {
+          status.className = "status-box error show";
+          status.innerHTML = `❌ Error: ${error.message}`;
         }
+      }
 
-        // Load stats on page load
-        window.addEventListener('load', loadStats);
+      // Load stats on page load
+      window.addEventListener("load", loadStats);
     </script>
-</body>
+  </body>
 </html>

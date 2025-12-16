@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Research Assistant</title>
+    <title>Autonomous Multi-Agent Orchestration for Complex Task Reasoning
+</title>
     <style>
       * {
         margin: 0;
@@ -259,15 +260,52 @@
   </head>
   <body>
     <div class="container">
-      <h1>🔬 AI Research Assistant</h1>
+      <h1>Autonomous Multi-Agent Orchestration for Complex Task Reasoning
+</h1>
       <p class="subtitle">
         Search, analyze, and understand research papers with AI
       </p>
-      <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center;">
-        <a href="/knowledge_graph" style="color: #667eea; text-decoration: none; font-weight: 500; padding: 10px 20px; border: 2px solid #667eea; border-radius: 8px; display: inline-block; transition: all 0.3s;" onmouseover="this.style.background='#667eea'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#667eea'">
+      <div
+        style="
+          text-align: center;
+          margin-bottom: 20px;
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        "
+      >
+        <a
+          href="/knowledge_graph"
+          style="
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            display: inline-block;
+            transition: all 0.3s;
+          "
+          onmouseover="this.style.background='#667eea'; this.style.color='white'"
+          onmouseout="this.style.background='transparent'; this.style.color='#667eea'"
+        >
           🕸️ View Knowledge Graph
         </a>
-        <a href="/admin" style="color: #48bb78; text-decoration: none; font-weight: 500; padding: 10px 20px; border: 2px solid #48bb78; border-radius: 8px; display: inline-block; transition: all 0.3s;" onmouseover="this.style.background='#48bb78'; this.style.color='white'" onmouseout="this.style.background='transparent'; this.style.color='#48bb78'">
+        <a
+          href="/admin"
+          style="
+            color: #48bb78;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border: 2px solid #48bb78;
+            border-radius: 8px;
+            display: inline-block;
+            transition: all 0.3s;
+          "
+          onmouseover="this.style.background='#48bb78'; this.style.color='white'"
+          onmouseout="this.style.background='transparent'; this.style.color='#48bb78'"
+        >
           ⚙️ Admin Panel
         </a>
       </div>
@@ -629,12 +667,21 @@
         document.getElementById("ragAnswerContainer").style.display = "none";
 
         try {
+          // Get current job_id from global state
+          const jobId = currentJobId;
+          if (!jobId) {
+            showError("No papers processed yet. Please process papers first.");
+            document.getElementById("askBtn").disabled = false;
+            document.getElementById("askBtn").textContent = "🔍 Ask AI";
+            return;
+          }
+
           const response = await fetch("/rag/query", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ question: question }),
+            body: JSON.stringify({ question: question, job_id: jobId }),
           });
 
           console.log("RAG response status:", response.status);

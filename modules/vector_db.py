@@ -7,6 +7,7 @@ from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 from config import config
 from modules.utils import logger
+from modules.database import db
 
 class VectorDatabase:
     """
@@ -93,6 +94,18 @@ class VectorDatabase:
             except:
                 pass  # Paper might not exist yet
             
+            # Get job_id from database for filtering
+            job_id = None
+            try:
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT job_id FROM papers WHERE id = ?', (paper_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        job_id = row['job_id']
+            except Exception as e:
+                logger.warning(f"Could not fetch job_id for paper {paper_id}: {e}")
+            
             metadata = paper_data.get('metadata', {})
             sections = paper_data.get('sections_text', {})
             contributions = paper_data.get('contributions', {})
@@ -107,8 +120,9 @@ class VectorDatabase:
                 documents.append(abstract)
                 metadatas.append({
                     'paper_id': paper_id,
-                    'arxiv_id': metadata.get('arxiv_id', ''),
-                    'title': metadata.get('title', ''),
+                    'job_id': job_id if job_id is not None else 0,  # Use 0 as default if None
+                    'arxiv_id': metadata.get('arxiv_id', 'unknown'),
+                    'title': metadata.get('title', 'unknown'),
                     'section_type': 'abstract',
                     'chunk_index': 0,
                     'priority': 'high'
@@ -127,8 +141,9 @@ class VectorDatabase:
                     documents.append(contrib_text.strip())
                     metadatas.append({
                         'paper_id': paper_id,
-                        'arxiv_id': metadata.get('arxiv_id', ''),
-                        'title': metadata.get('title', ''),
+                        'job_id': job_id if job_id is not None else 0,  # Use 0 as default if None
+                        'arxiv_id': metadata.get('arxiv_id', 'unknown'),
+                        'title': metadata.get('title', 'unknown'),
                         'section_type': 'contributions',
                         'chunk_index': 0,
                         'priority': 'high'
@@ -161,8 +176,9 @@ class VectorDatabase:
                     documents.append(chunk)
                     metadatas.append({
                         'paper_id': paper_id,
-                        'arxiv_id': metadata.get('arxiv_id', ''),
-                        'title': metadata.get('title', ''),
+                        'job_id': job_id if job_id is not None else 0,  # Use 0 as default if None
+                        'arxiv_id': metadata.get('arxiv_id', 'unknown'),
+                        'title': metadata.get('title', 'unknown'),
                         'section_type': section_name,
                         'chunk_index': chunk_idx,
                         'priority': 'normal'
@@ -187,6 +203,7 @@ class VectorDatabase:
             return 0
     
     def search(self, query: str, top_k: int = None, 
+              filter_job_id: Optional[int] = None,
               filter_paper_id: Optional[int] = None) -> List[Dict]:
         """
         Semantic search across all indexed papers.
@@ -194,6 +211,7 @@ class VectorDatabase:
         Args:
             query: Search query
             top_k: Number of results to return
+            filter_job_id: Optional job ID to restrict search (for isolation)
             filter_paper_id: Optional paper ID to restrict search
         
         Returns:
@@ -208,21 +226,38 @@ class VectorDatabase:
                 logger.warning("Collection is empty!")
                 return []
             
-            logger.debug(f"Searching {total_docs} documents with query: '{query[:50]}'")
+            logger.debug(f"Searching {total_docs} documents with query: '{query[:50]}' (job_id={filter_job_id})")
             
-            # Prepare filter
+            # First, try to search with filter if job_id is specified
+            # If no results, fall back to unfiltered search (handles old documents)
             where = None
-            if filter_paper_id:
-                where = {"paper_id": filter_paper_id}
+            n_results = min(top_k * 2, total_docs)
+            
+            # Try with filter first (for newly indexed documents)
+            if filter_job_id is not None or filter_paper_id is not None:
+                where = {}
+                # Only add job_id filter if provided AND is greater than 0
+                if filter_job_id is not None and filter_job_id > 0:
+                    where["job_id"] = filter_job_id
+                if filter_paper_id is not None:
+                    where["paper_id"] = filter_paper_id
+                where = where if where else None
             
             # Perform search - get more results than needed
-            n_results = min(top_k * 2, total_docs)  # Get extra to filter later
-            
             results = self.collection.query(
                 query_texts=[query],
                 n_results=n_results,
                 where=where
             )
+            
+            # If no results with filter, try without filter to get old documents
+            if (not results or not results.get('ids') or not results['ids'][0]) and where is not None:
+                logger.debug(f"No results with filter, trying without filter...")
+                results = self.collection.query(
+                    query_texts=[query],
+                    n_results=n_results,
+                    where=None
+                )
             
             if not results or not results.get('ids') or not results['ids'][0]:
                 logger.warning(f"Search returned no results")

@@ -45,11 +45,24 @@ class KnowledgeGraph:
             metadata = paper_data.get('metadata', {})
             contributions = paper_data.get('contributions', {})
             
+            # Get job_id from database for isolation
+            job_id = None
+            try:
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT job_id FROM papers WHERE id = ?', (paper_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        job_id = row['job_id']
+            except Exception as e:
+                logger.warning(f"Could not fetch job_id for paper {paper_id}: {e}")
+            
             # Add paper node
             self.graph.add_node(
                 f"paper_{paper_id}",
                 type='paper',
                 paper_id=paper_id,
+                job_id=job_id if job_id is not None else 0,  # Use 0 if None
                 arxiv_id=metadata.get('arxiv_id', ''),
                 title=metadata.get('title', ''),
                 year=self._extract_year(metadata.get('published', '')),
@@ -154,13 +167,14 @@ class KnowledgeGraph:
             logger.error(f"Error linking citations: {e}")
             return 0
     
-    def find_related_papers(self, paper_id: int, max_results: int = 5) -> List[Dict]:
+    def find_related_papers(self, paper_id: int, max_results: int = 5, job_id: Optional[int] = None) -> List[Dict]:
         """
         Find papers related to a given paper through various relationships.
         
         Args:
             paper_id: Source paper ID
             max_results: Maximum number of related papers
+            job_id: Optional job_id to filter related papers by
         
         Returns:
             List of related papers with relationship info
@@ -171,11 +185,19 @@ class KnowledgeGraph:
             if not self.graph.has_node(source_node):
                 return []
             
+            # Get source paper's job_id if not provided
+            if job_id is None:
+                job_id = self.graph.nodes[source_node].get('job_id')
+            
             related = []
             
             # Papers that cite this paper
             for predecessor in self.graph.predecessors(source_node):
                 if predecessor.startswith('paper_'):
+                    # Filter by job_id if specified
+                    if job_id is not None and self.graph.nodes[predecessor].get('job_id') != job_id:
+                        continue
+                    
                     edge_data = self.graph.get_edge_data(predecessor, source_node)
                     if edge_data and any(e.get('relationship') == 'cites' for e in edge_data.values()):
                         related.append({
@@ -187,6 +209,10 @@ class KnowledgeGraph:
             # Papers cited by this paper
             for successor in self.graph.successors(source_node):
                 if successor.startswith('paper_'):
+                    # Filter by job_id if specified
+                    if job_id is not None and self.graph.nodes[successor].get('job_id') != job_id:
+                        continue
+                    
                     edge_data = self.graph.get_edge_data(source_node, successor)
                     if edge_data and any(e.get('relationship') == 'cites' for e in edge_data.values()):
                         related.append({
@@ -200,6 +226,10 @@ class KnowledgeGraph:
             for author in authors:
                 for paper in self.graph.successors(author):
                     if paper.startswith('paper_') and paper != source_node:
+                        # Filter by job_id if specified
+                        if job_id is not None and self.graph.nodes[paper].get('job_id') != job_id:
+                            continue
+                        
                         related.append({
                             'paper_id': int(paper.split('_')[1]),
                             'relationship': 'same_author',
@@ -211,6 +241,10 @@ class KnowledgeGraph:
             for concept in concepts:
                 for paper in self.graph.predecessors(concept):
                     if paper.startswith('paper_') and paper != source_node:
+                        # Filter by job_id if specified
+                        if job_id is not None and self.graph.nodes[paper].get('job_id') != job_id:
+                            continue
+                        
                         related.append({
                             'paper_id': int(paper.split('_')[1]),
                             'relationship': 'shared_concept',
