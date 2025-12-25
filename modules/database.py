@@ -230,6 +230,13 @@ class DatabaseManager:
             return [dict(row) for row in cursor.fetchall()]
     
     # ========== PAPER MANAGEMENT ==========
+
+    def get_all_papers(self) -> List[Dict]:
+        """Return all papers with their metadata."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM papers')
+            return [dict(row) for row in cursor.fetchall()]
     
     def save_paper(self, job_id: int, paper_metadata: Dict) -> int:
         """Save paper metadata to database."""

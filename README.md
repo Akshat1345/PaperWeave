@@ -1,4 +1,5 @@
 # 📚 PaperWeave
+**The system weaves together multiple research papers by extracting structure, linking concepts using a knowledge graph, and synthesizing insights through agentic AI workflows.**
 
 > **Intelligent end-to-end system for research paper analysis with semantic-keyword hybrid retrieval, knowledge graph construction, and AI-powered literature synthesis**
 
@@ -8,6 +9,11 @@
 [![Ollama](https://img.shields.io/badge/Ollama-LLM-purple.svg)](https://ollama.ai)
 
 ---
+
+**About:**
+PaperWeave is an agentic AI-powered research assistant designed to weave multiple research papers into a unified, structured understanding. It automates the end-to-end research workflow by intelligently scraping academic papers, extracting accurate sections, summarizing content, linking concepts through a knowledge-centric representation, and enabling semantic retrieval across papers.
+
+Built with a multi-agent architecture, PaperWeave transforms unstructured PDFs into interconnected knowledge, helping researchers, students, and developers explore literature more efficiently, discover relationships across studies, and generate context-aware insights using Retrieval-Augmented Generation (RAG).
 
 ## 📖 What It Does
 
