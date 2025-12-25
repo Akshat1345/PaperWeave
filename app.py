@@ -17,6 +17,36 @@ from modules.utils import logger, format_duration
 
 app = Flask(__name__)
 
+# ========== PRODUCTION ENHANCEMENTS ==========
+
+# Security Headers Middleware
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses."""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # CORS headers for production
+    if os.environ.get('ENABLE_CORS', 'False').lower() == 'true':
+        allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000')
+        origin = request.headers.get('Origin')
+        if origin in allowed_origins.split(','):
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+    
+    return response
+
+# Request logging middleware
+@app.before_request
+def log_request():
+    """Log incoming requests for monitoring."""
+    if os.environ.get('ENABLE_PERFORMANCE_LOGGING', 'False').lower() == 'true':
+        logger.info(f"⬆️  {request.method} {request.path} from {request.remote_addr}")
+
 # Global variable for current job tracking
 current_job = {
     'is_processing': False,
@@ -40,7 +70,69 @@ def not_found(error):
     """404 handler."""
     return jsonify({'error': 'Resource not found'}), 404
 
+@app.errorhandler(400)
+def bad_request(error):
+    """400 handler."""
+    return jsonify({'error': 'Bad request', 'details': str(error)}), 400
+
+@app.errorhandler(500)
+def internal_error(error):
+    """500 handler."""
+    logger.error(f"Internal server error: {error}", exc_info=True)
+    return jsonify({'error': 'Internal server error'}), 500
+
 # ========== ROUTES ==========
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for monitoring."""
+    try:
+        # Check database
+        db_status = 'healthy'
+        try:
+            db.get_recent_jobs(limit=1)
+        except:
+            db_status = 'unhealthy'
+        
+        # Check Ollama
+        ollama_status = 'healthy'
+        try:
+            import ollama
+            ollama.list()
+        except:
+            ollama_status = 'unhealthy'
+        
+        # Check vector DB
+        vector_db_status = 'healthy'
+        try:
+            stats = vector_db.get_stats()
+        except:
+            vector_db_status = 'unhealthy'
+        
+        overall_status = 'healthy' if all([
+            db_status == 'healthy',
+            ollama_status == 'healthy',
+            vector_db_status == 'healthy'
+        ]) else 'degraded'
+        
+        return jsonify({
+            'status': overall_status,
+            'timestamp': datetime.now().isoformat(),
+            'version': '1.0.0',
+            'components': {
+                'database': db_status,
+                'ollama': ollama_status,
+                'vector_db': vector_db_status
+            },
+            'is_processing': current_job['is_processing']
+        }), 200 if overall_status == 'healthy' else 503
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 503
 
 @app.route('/')
 def index():
@@ -427,23 +519,18 @@ def rag_query():
     Request body:
     {
         "question": "What are the main challenges?",
-        "job_id": 11,  // required - to filter papers by job
-        "paper_id": 1  // optional - to query specific paper
+        "job_id": 11  // optional - to filter papers by job, searches all if omitted
     }
     """
     try:
         data = request.json
         question = data.get('question', '').strip()
-        job_id = data.get('job_id')
-        paper_id = data.get('paper_id')
+        job_id = data.get('job_id')  # Now optional - will search all papers if not provided
         
-        logger.info(f"📝 Hybrid RAG Query received: '{question}' for job_id={job_id}")
+        logger.info(f"📝 Hybrid RAG Query received: '{question}' (job_id={job_id})")
         
         if not question:
             return jsonify({'error': 'Question is required'}), 400
-        
-        if not job_id:
-            return jsonify({'error': 'job_id is required to filter results'}), 400
         
         # Check if vector DB has data
         stats = vector_db.get_statistics()
@@ -458,8 +545,9 @@ def rag_query():
         
         logger.info(f"📊 Vector DB has {stats.get('total_chunks')} chunks from {stats.get('unique_papers')} papers")
         
-        # Query Hybrid RAG engine with job_id for isolation
-        result = hybrid_rag_engine.query(question, job_id=job_id, specific_paper_id=paper_id)
+        # Query Hybrid RAG engine
+        # If job_id is provided, filter by it; otherwise search all papers
+        result = hybrid_rag_engine.query(question, job_id=job_id, specific_paper_id=None)
         
         logger.info(f"✅ Hybrid RAG query completed: {len(result.get('sources', []))} sources")
         
@@ -500,22 +588,53 @@ def get_related_papers(paper_id):
 
 @app.route('/rag/index_status')
 def get_index_status():
-    """Get indexing status."""
+    """Get detailed index status for debugging."""
     try:
+        # Vector DB stats
         vector_stats = vector_db.get_statistics()
-        graph_stats = knowledge_graph.get_statistics()
-        db_stats = db.get_database_stats()
+        
+        # Get paper count from DB
+        papers = db.get_all_papers()
+        papers_by_job = {}
+        for paper in papers:
+            job_id = paper.get('job_id', 0)
+            if job_id not in papers_by_job:
+                papers_by_job[job_id] = []
+            papers_by_job[job_id].append(paper)
+        
+        # Get recent jobs
+        recent_jobs = db.get_recent_jobs(limit=5)
         
         return jsonify({
-            'vector_db': vector_stats,
-            'knowledge_graph': graph_stats,
-            'database': {
-                'total_papers': db_stats.get('total_papers', 0)
+            'vector_db': {
+                'total_chunks': vector_stats.get('total_chunks', 0),
+                'unique_papers': vector_stats.get('unique_papers', 0),
+                'collection_count': vector_stats.get('collection_count', 0)
             },
-            'indexed_percentage': (vector_stats.get('unique_papers', 0) / max(db_stats.get('total_papers', 1), 1)) * 100
+            'database': {
+                'total_papers': len(papers),
+                'papers_by_job': {str(k): len(v) for k, v in papers_by_job.items()},
+                'papers_with_job_id_0': len(papers_by_job.get(0, [])),
+                'papers_with_job_id_gt_0': sum(len(v) for k, v in papers_by_job.items() if k > 0)
+            },
+            'recent_jobs': [
+                {
+                    'id': j['id'],
+                    'topic': j['topic'],
+                    'status': j['status'],
+                    'num_papers_requested': j.get('num_papers_requested', 'N/A'),
+                    'papers_processed': len([p for p in papers if p.get('job_id') == j['id']])
+                }
+                for j in recent_jobs
+            ],
+            'knowledge_graph': {
+                'nodes': knowledge_graph.graph.number_of_nodes(),
+                'edges': knowledge_graph.graph.number_of_edges()
+            }
         })
+        
     except Exception as e:
-        logger.error(f"Error getting index status: {e}")
+        logger.error(f"Index status error: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/rag/reindex', methods=['POST'])
@@ -643,6 +762,59 @@ def get_job_surveys(job_id):
         logger.error(f"Error retrieving surveys: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/surveys/combined/<int:job_id>')
+def get_combined_literature_survey(job_id):
+    """Get the combined literature survey with real citations for all papers in a job."""
+    try:
+        logger.info(f"📚 Fetching combined literature survey for job {job_id}")
+        
+        job_data = db.get_job(job_id)
+        if not job_data:
+            return jsonify({'error': 'Job not found'}), 404
+        
+        papers = db.get_papers_by_job(job_id)
+        if not papers:
+            return jsonify({'error': 'No papers found for this job'}), 404
+        
+        # Check cache first - if survey already generated, use it
+        cached_survey = db.get_job_combined_survey(job_id)
+        if cached_survey:
+            logger.info(f"📚 Using cached combined literature survey for job {job_id}")
+            return jsonify({
+                'job_id': job_id,
+                'topic': job_data.get('topic'),
+                'combined_survey': json.loads(cached_survey),
+                'cached': True,
+                'stats': {
+                    'total_papers': len(papers)
+                }
+            })
+        
+        # Generate combined survey using the new method
+        from modules.survey_generator import survey_generator
+        combined_survey = survey_generator.generate_combined_literature_survey(job_id, papers)
+        
+        if combined_survey.get('error'):
+            return jsonify(combined_survey), 500
+        
+        # Cache the generated survey
+        db.save_job_combined_survey(job_id, json.dumps(combined_survey, default=str))
+        
+        return jsonify({
+            'job_id': job_id,
+            'topic': job_data.get('topic'),
+            'combined_survey': combined_survey,
+            'cached': False,
+            'stats': {
+                'total_papers': len(papers),
+                'paper_count': combined_survey.get('paper_count', 0)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching combined survey: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/surveys/overall')
 def get_overall_survey():
     """Generate an overall literature survey synthesizing all papers in a job."""
@@ -662,10 +834,19 @@ def get_overall_survey():
         if not papers:
             return jsonify({'error': 'No papers found for this job'}), 404
         
+        # Check cache first - if survey already generated, use it
+        cached_survey = db.get_job_overall_survey(job_id)
+        if cached_survey:
+            logger.info(f"🔬 Using cached overall survey for job {job_id}")
+            return jsonify(json.loads(cached_survey))
+        
         # Generate overall survey using Ollama
         overall_survey = _generate_comprehensive_literature_survey(
             papers, surveys, job_data
         )
+        
+        # Cache the generated survey
+        db.save_job_overall_survey(job_id, json.dumps(overall_survey, default=str))
         
         return jsonify(overall_survey)
         

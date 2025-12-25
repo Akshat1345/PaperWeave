@@ -76,6 +76,20 @@ class BM25Retriever:
         
         except Exception as e:
             logger.warning(f"Could not load BM25 index: {e}")
+
+    def refresh(self):
+        """Rebuild BM25 index from the database to pick up newly processed papers."""
+        try:
+            self.documents = []
+            self.document_metadata = {}
+            self.inverted_index = defaultdict(list)
+            self.doc_lengths = {}
+            self.word_freqs = defaultdict(lambda: defaultdict(int))
+            self.avg_doc_length = 0
+            self._load_index()
+            logger.info(f"BM25 index refreshed: {len(self.documents)} documents, {len(self.inverted_index)} unique terms")
+        except Exception as e:
+            logger.warning(f"BM25 refresh failed: {e}")
     
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text for BM25."""
@@ -198,24 +212,64 @@ class HybridRAGEngine:
             logger.debug(f"Processed query: {processed_query}")
             
             # Step 2: Multi-stage retrieval with job_id isolation
+            logger.info("Retrieving BM25 results...")
             bm25_results = self._retrieve_bm25(processed_query, top_k=20, job_id=job_id)
-            semantic_results = self._retrieve_semantic(question, top_k=20, job_id=job_id, paper_id=specific_paper_id)
+            logger.info(f"BM25 retrieved: {len(bm25_results)} results")
             
-            logger.info(f"BM25 results: {len(bm25_results)}, Semantic results: {len(semantic_results)} (filtered by job_id={job_id})")
+            logger.info("Retrieving semantic results...")
+            semantic_results = self._retrieve_semantic(question, top_k=20, job_id=job_id, paper_id=specific_paper_id)
+            logger.info(f"Semantic retrieved: {len(semantic_results)} results")
+            
+            # If no results from either method, refresh indexes and retry once
+            if not bm25_results and not semantic_results:
+                logger.warning("No results found initially. Refreshing indexes and retrying once...")
+                try:
+                    vector_db.refresh()
+                except Exception as e:
+                    logger.debug(f"Vector DB refresh failed: {e}")
+                try:
+                    self.bm25.refresh()
+                except Exception as e:
+                    logger.debug(f"BM25 refresh failed: {e}")
+
+                bm25_results = self._retrieve_bm25(processed_query, top_k=20, job_id=job_id)
+                semantic_results = self._retrieve_semantic(question, top_k=20, job_id=job_id, paper_id=specific_paper_id)
+                logger.info(f"Post-refresh retrieval -> BM25: {len(bm25_results)}, Semantic: {len(semantic_results)}")
+
+                if not bm25_results and not semantic_results:
+                    logger.warning(f"No results found for query after refresh: {question}")
+                    return {
+                        'answer': 'No relevant information found in the research papers. Try a different question or rephrase your query.',
+                        'sources': [],
+                        'confidence': 'low',
+                        'method': 'hybrid_rag',
+                        'retrieval_methods': {
+                            'bm25_count': 0,
+                            'semantic_count': 0,
+                            'after_fusion': 0,
+                            'after_dedup': 0
+                        }
+                    }
             
             # Step 3: Reciprocal Rank Fusion (RRF)
+            logger.info("Performing RRF fusion...")
             fused_results = self._reciprocal_rank_fusion(bm25_results, semantic_results)
+            logger.info(f"After fusion: {len(fused_results)} unique results")
             
-            # Step 4: Reranking with cross-encoder
+            # Step 4: Reranking with cross-encoder (with timeout protection)
+            logger.info("Reranking with cross-encoder...")
             reranked = self._rerank_with_cross_encoder(question, fused_results)
+            logger.info(f"After reranking: {len(reranked)} results")
             
             # Step 5: Deduplication
+            logger.info("Deduplicating results...")
             unique_results = self._deduplicate_results(reranked)
             final_results = unique_results[:config.RAG_TOP_K_RESULTS]
             
             logger.info(f"Final results: {len(final_results)} unique documents")
             
             if not final_results:
+                logger.warning("No results after deduplication")
                 return {
                     'answer': 'No relevant information found. Try rephrasing your question.',
                     'sources': [],
@@ -224,15 +278,18 @@ class HybridRAGEngine:
                 }
             
             # Step 6: Enrich with knowledge graph
+            logger.info("Enriching with knowledge graph...")
             enriched = self._enrich_with_context(final_results, job_id=job_id)
             
             # Count knowledge graph enrichments
             kg_enrichments = sum(1 for r in enriched if r.get('related_papers'))
             
             # Step 7: Build context
+            logger.info("Building context...")
             context = self._build_context(enriched)
             
             # Step 8: Generate answer
+            logger.info("Generating answer with LLM...")
             answer_data = self._generate_answer(question, context, enriched)
             answer_data['sources'] = self._format_sources(enriched)
             answer_data['method'] = 'hybrid_rag'
@@ -386,6 +443,7 @@ class HybridRAGEngine:
         """
         Rerank results using LLM-based cross-encoder scoring.
         More accurate but slower - only use for top candidates.
+        Falls back to RRF order if LLM call fails.
         """
         try:
             if len(results) <= 5:
@@ -393,7 +451,7 @@ class HybridRAGEngine:
                 return results
             
             # Take top candidates for reranking
-            candidates = results[:min(15, len(results))]
+            candidates = results[:min(10, len(results))]
             
             # Build comparison text
             comparison_text = ""
@@ -402,30 +460,45 @@ class HybridRAGEngine:
                 section = metadata.get('section_type', metadata.get('section', 'Unknown'))
                 title = metadata.get('title', 'Unknown')[:50]
                 
-                text = result.get('text', '')[:200] if 'text' in result else \
+                text = result.get('text', '')[:150] if 'text' in result else \
                        result.get('bm25_score', 0) and "BM25 result" or "Semantic result"
                 
                 comparison_text += f"\n[Result {i+1}] {title} ({section})\n{text}\n"
             
-            prompt = f"""Rerank these search results by relevance to the query. Return ONLY the ranking order.
+            prompt = f"""Rerank these search results by relevance. Return ONLY the ranking.
 
 QUERY: {query}
 
 RESULTS:
 {comparison_text}
 
-Respond with ONLY the result numbers in order of relevance (1-indexed), comma-separated.
-Example: "3,1,5,2,4"
-Most relevant first."""
+Respond with ONLY result numbers (1-indexed), comma-separated, most relevant first.
+Example: "3,1,5,2"
+NUMBERS ONLY:"""
 
+            logger.debug("Starting cross-encoder reranking...")
             response = ollama.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.1, "num_predict": 50}
+                options={"temperature": 0.1, "num_predict": 30}
             )
             
-            ranking_str = response['message']['content'].strip()
-            ranks = [int(x.strip()) - 1 for x in ranking_str.split(',') if x.strip().isdigit()]
+            ranking_str = response['message']['content'].strip().replace(" ", "")
+            logger.debug(f"Cross-encoder response: {ranking_str}")
+            
+            # Parse rankings
+            ranks = []
+            for part in ranking_str.split(','):
+                try:
+                    rank = int(part.strip()) - 1
+                    if 0 <= rank < len(candidates):
+                        ranks.append(rank)
+                except ValueError:
+                    continue
+            
+            if not ranks:
+                logger.warning("Failed to parse cross-encoder ranking, using RRF order")
+                return results
             
             # Reorder results
             reranked = []
@@ -442,7 +515,7 @@ Most relevant first."""
             return reranked
             
         except Exception as e:
-            logger.warning(f"Cross-encoder reranking failed: {e}, using RRF order")
+            logger.warning(f"Cross-encoder reranking failed ({type(e).__name__}: {e}), using RRF order")
             return results
     
     def _deduplicate_results(self, results: List[Dict]) -> List[Dict]:

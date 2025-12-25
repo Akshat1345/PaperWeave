@@ -143,12 +143,27 @@ class DatabaseManager:
                 )
             ''')
             
+            # Job-level Combined and Overall Surveys Cache Table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS job_surveys (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    job_id INTEGER NOT NULL,
+                    combined_survey TEXT,
+                    overall_survey TEXT,
+                    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (job_id) REFERENCES processing_jobs(id),
+                    UNIQUE(job_id)
+                )
+            ''')
+            
             # Create indexes for better query performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_papers_arxiv_id ON papers(arxiv_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_papers_job_id ON papers(job_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_sections_paper_id ON paper_sections(paper_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_contributions_paper_id ON paper_contributions(paper_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_surveys_paper_id ON paper_surveys(paper_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_job_surveys_job_id ON job_surveys(job_id)')
+
             
             conn.commit()
     
@@ -453,6 +468,56 @@ class DatabaseManager:
                 WHERE p.job_id = ?
             ''', (job_id,))
             return [dict(row) for row in cursor.fetchall()]
+    
+    # ========== JOB-LEVEL SURVEY CACHING ==========
+    
+    def get_job_combined_survey(self, job_id: int) -> str | None:
+        """Get cached combined survey for a job."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT combined_survey FROM job_surveys WHERE job_id = ?', (job_id,))
+            row = cursor.fetchone()
+            return row['combined_survey'] if row else None
+    
+    def get_job_overall_survey(self, job_id: int) -> str | None:
+        """Get cached overall survey for a job."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT overall_survey FROM job_surveys WHERE job_id = ?', (job_id,))
+            row = cursor.fetchone()
+            return row['overall_survey'] if row else None
+    
+    def save_job_combined_survey(self, job_id: int, survey: str):
+        """Cache combined survey for a job."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Try to update first, then insert if not exists
+            cursor.execute(
+                'UPDATE job_surveys SET combined_survey = ? WHERE job_id = ?',
+                (survey, job_id)
+            )
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    'INSERT INTO job_surveys (job_id, combined_survey) VALUES (?, ?)',
+                    (job_id, survey)
+                )
+            conn.commit()
+    
+    def save_job_overall_survey(self, job_id: int, survey: str):
+        """Cache overall survey for a job."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Try to update first, then insert if not exists
+            cursor.execute(
+                'UPDATE job_surveys SET overall_survey = ? WHERE job_id = ?',
+                (survey, job_id)
+            )
+            if cursor.rowcount == 0:
+                cursor.execute(
+                    'INSERT INTO job_surveys (job_id, overall_survey) VALUES (?, ?)',
+                    (job_id, survey)
+                )
+            conn.commit()
 
 # Global database instance
 db = DatabaseManager()

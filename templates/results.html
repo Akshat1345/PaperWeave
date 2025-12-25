@@ -24,48 +24,121 @@
       }
 
       header {
-        background: white;
-        padding: 30px;
-        border-radius: 15px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        padding: 40px;
+        border-radius: 20px;
         margin-bottom: 30px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.1);
       }
 
       header h1 {
         color: #667eea;
         margin-bottom: 10px;
+        font-size: 2.2em;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       }
 
       header .subtitle {
         color: #666;
         font-size: 1.1em;
+        margin-bottom: 20px;
+      }
+
+      .topic-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 30px;
+        border-radius: 50px;
+        display: inline-block;
+        margin-top: 15px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        animation: fadeInUp 0.6s ease-out;
+      }
+
+      .topic-label {
+        font-weight: 600;
+        opacity: 0.9;
+        margin-right: 8px;
+        font-size: 0.9em;
+      }
+
+      .topic-name {
+        font-weight: 700;
+        font-size: 1.1em;
+        text-transform: capitalize;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .tabs {
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
+        gap: 12px;
+        margin-bottom: 25px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        padding: 20px;
+        border-radius: 15px;
         overflow-x: auto;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
       }
 
       .tab-button {
-        padding: 10px 20px;
-        border: 2px solid #ddd;
+        padding: 12px 24px;
+        border: 2px solid transparent;
         background: white;
         cursor: pointer;
-        border-radius: 8px;
+        border-radius: 12px;
         font-weight: 600;
-        transition: all 0.3s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .tab-button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .tab-button:hover::before {
+        left: 100%;
+      }
+
+      .tab-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        border-color: rgba(102, 126, 234, 0.3);
       }
 
       .tab-button.active {
-        border-color: #667eea;
-        background: #667eea;
+        border-color: transparent;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        transform: translateY(-2px);
       }
 
       .tab-content {
@@ -87,18 +160,19 @@
       }
 
       .paper-card {
-        background: white;
-        border-radius: 12px;
-        padding: 25px;
+        background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+        border-radius: 15px;
+        padding: 30px;
         margin-bottom: 25px;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s;
-        border-left: 4px solid #667eea;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 5px solid;
+        border-image: linear-gradient(180deg, #667eea 0%, #764ba2 100%) 1;
       }
 
       .paper-card:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.2);
+        transform: translateY(-5px);
       }
 
       .paper-header {
@@ -281,22 +355,55 @@
       }
 
       .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
+        padding: 25px;
+        border-radius: 15px;
         text-align: center;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid rgba(102, 126, 234, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+      }
+
+      .stat-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .stat-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.25);
+        border-color: rgba(102, 126, 234, 0.3);
       }
 
       .stat-number {
-        font-size: 2em;
-        color: #667eea;
-        font-weight: 700;
+        font-size: 3em;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
       }
 
       .stat-label {
-        color: #666;
-        font-size: 0.9em;
+        color: #555;
+        font-size: 0.95em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
         margin-top: 5px;
       }
 
@@ -384,15 +491,26 @@
         <p class="subtitle">
           Comprehensive literature surveys and RAG-powered Q&A
         </p>
+        <div class="topic-badge" id="topicBadge" style="display: none">
+          <span class="topic-label">Research Topic:</span>
+          <span class="topic-name" id="topicName">-</span>
+        </div>
       </header>
 
       <div class="tabs">
-        <button class="tab-button active" data-tab="overview">Overview</button>
-        <button class="tab-button" data-tab="overall-survey">
-          Overall Survey
+        <button class="tab-button active" data-tab="overview">
+          📊 Overview
         </button>
-        <button class="tab-button" data-tab="papers">Papers & Surveys</button>
-        <button class="tab-button" data-tab="rag-qa">RAG Q&A</button>
+        <button class="tab-button" data-tab="combined-survey">
+          📚 Combined Literature Survey
+        </button>
+        <button class="tab-button" data-tab="overall-survey">
+          🔬 Research Synthesis
+        </button>
+        <button class="tab-button" data-tab="papers">
+          📄 Individual Papers & Surveys
+        </button>
+        <button class="tab-button" data-tab="rag-qa">🤖 AI Q&A</button>
       </div>
 
       <!-- Overview Tab -->
@@ -415,20 +533,29 @@
             <div class="stat-label">Indexed Chunks</div>
           </div>
         </div>
-        <!-- <div
-          style="
-            font-size: larger;
-            text-align: center;
-            margin-top: 20px;
-            color: #cfe2ff;
-          "
-        >
-          <p>Topic: <span id="topicName">Unknown</span></p>
-        </div> -->
         <div style="text-align: center; margin-top: 20px">
           <button class="query-button" onclick="downloadAllResults()">
             📥 Download All Results (ZIP)
           </button>
+        </div>
+      </div>
+
+      <!-- Combined Literature Survey Tab (NEW!) -->
+      <div id="combined-survey" class="tab-content">
+        <div class="paper-card">
+          <h2 style="color: #667eea; margin-bottom: 20px">
+            📚 Combined Literature Survey with Citations
+          </h2>
+          <p style="color: #666; margin-bottom: 20px; font-style: italic">
+            A comprehensive literature survey synthesizing all processed papers
+            with proper academic citations.
+          </p>
+          <div id="combinedSurveyContent">
+            <div class="loading">
+              <div class="spinner"></div>
+              Loading combined literature survey...
+            </div>
+          </div>
         </div>
       </div>
 
@@ -520,6 +647,14 @@
           summary.completed_papers;
         document.getElementById("totalSurveys").textContent =
           summary.papers_with_surveys;
+
+        // Display topic name if available
+        if (summary.topic) {
+          const topicBadge = document.getElementById("topicBadge");
+          const topicName = document.getElementById("topicName");
+          topicName.textContent = summary.topic;
+          topicBadge.style.display = "block";
+        }
       }
 
       function loadIndexStats() {
@@ -698,12 +833,14 @@
         if (!query) return;
 
         // Get job_id from currentJobId or URL parameter
-        const jobId =
+        let jobId =
           currentJobId ||
           new URLSearchParams(window.location.search).get("job_id");
+
+        // If no job_id, still allow query to search all papers
         if (!jobId) {
-          alert("No job ID found. Please process papers first.");
-          return;
+          console.log("No specific job_id, will search all processed papers");
+          jobId = null; // Don't pass job_id filter, search all
         }
 
         const resultDiv = document.getElementById("ragResult");
@@ -711,13 +848,19 @@
         document.getElementById("ragAnswer").innerHTML =
           '<div class="loading"><div class="spinner"></div>Querying papers...</div>';
 
+        const requestBody = {
+          question: query,
+        };
+
+        // Only include job_id if we have one
+        if (jobId) {
+          requestBody.job_id = parseInt(jobId);
+        }
+
         fetch("/rag/query", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question: query,
-            job_id: parseInt(jobId),
-          }),
+          body: JSON.stringify(requestBody),
         })
           .then((res) => res.json())
           .then((data) => {
@@ -780,6 +923,115 @@
         .addEventListener("click", function () {
           loadOverallSurvey();
         });
+
+      // Load combined survey when tab is clicked
+      document
+        .querySelector('[data-tab="combined-survey"]')
+        .addEventListener("click", function () {
+          loadCombinedSurvey();
+        });
+
+      function loadCombinedSurvey() {
+        const jobId =
+          currentJobId ||
+          new URLSearchParams(window.location.search).get("job_id");
+        if (!jobId) {
+          document.getElementById("combinedSurveyContent").innerHTML =
+            '<div class="no-results">No job found. Please process papers first.</div>';
+          return;
+        }
+
+        // Show loading state
+        document.getElementById("combinedSurveyContent").innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            Generating combined literature survey with citations...
+          </div>
+        `;
+
+        fetch(`/surveys/combined/${jobId}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.error) {
+              document.getElementById(
+                "combinedSurveyContent"
+              ).innerHTML = `<div class="no-results">Error: ${data.error}</div>`;
+              return;
+            }
+
+            displayCombinedSurvey(data);
+          })
+          .catch((err) => {
+            console.error("Error loading combined survey:", err);
+            document.getElementById(
+              "combinedSurveyContent"
+            ).innerHTML = `<div class="no-results">Error loading survey: ${err.message}</div>`;
+          });
+      }
+
+      function displayCombinedSurvey(data) {
+        const content = document.getElementById("combinedSurveyContent");
+        const survey = data.combined_survey;
+
+        if (!survey || survey.error) {
+          content.innerHTML = `<div class="no-results">Survey not available: ${
+            survey?.error || "Unknown error"
+          }</div>`;
+          return;
+        }
+
+        // Build references section
+        let referencesHTML = "";
+        if (survey.references && survey.references.length > 0) {
+          referencesHTML = `
+            <div class="paper-section" style="margin-top: 30px;">
+              <div class="section-title">📖 References</div>
+              <div class="section-content">
+                <ol style="margin-left: 20px;">
+                  ${survey.references
+                    .map(
+                      (ref) =>
+                        `<li style="margin-bottom: 8px;">${ref.substring(
+                          ref.indexOf("]") + 2
+                        )}</li>`
+                    )
+                    .join("")}
+                </ol>
+              </div>
+            </div>
+          `;
+        }
+
+        content.innerHTML = `
+          <div class="paper-section">
+            <div class="section-title">📝 Literature Survey</div>
+            <div class="section-content" style="text-align: justify; line-height: 1.8; font-size: 15px;">
+              ${survey.content}
+            </div>
+          </div>
+          
+          ${referencesHTML}
+          
+          <div class="paper-section" style="margin-top: 20px;">
+            <div class="section-title">📊 Survey Statistics</div>
+            <div class="section-content">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div>
+                  <strong>Papers Analyzed:</strong> ${survey.paper_count || 0}
+                </div>
+                <div>
+                  <strong>Topic:</strong> ${data.topic || "N/A"}
+                </div>
+                <div>
+                  <strong>Total References:</strong> ${
+                    survey.references?.length || 0
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       function loadOverallSurvey() {
         const jobId =

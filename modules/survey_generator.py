@@ -314,10 +314,8 @@ FORMAT AS ACADEMIC PROSE:"""
                                     sections_text: Dict, references: List,
                                     job_id: Optional[int] = None) -> Dict:
         """
-        Generate academic-style Literature Survey section.
-        This creates a dense, citation-heavy narrative review of related work,
-        similar to the Literature Survey sections in IEEE conference papers.
-        Only uses citations from papers in the same job.
+        Generate academic-style Literature Survey section WITHOUT citations.
+        Provides a comprehensive narrative review of the paper's related work and context.
         """
         try:
             # Extract introduction and related work sections
@@ -325,36 +323,10 @@ FORMAT AS ACADEMIC PROSE:"""
                                if any(kw in k.lower() for kw in 
                                      ['intro', 'related', 'background', 'survey', 'literature', 'previous'])}
             
-            survey_content = "\n".join(relevant_sections.values())[:3000]
+            survey_content = "\n".join(relevant_sections.values())[:4000]
             
-            # Extract reference titles/context if available
-            # Only use references from this paper (since we're generating for individual papers)
-            ref_context = ""
-            ref_mapping = {}  # Map real citation indices to display indices
-            if references:
-                ref_list = []
-                # Limit to references available in this paper
-                max_refs = min(len(references), 20)
-                for i, ref in enumerate(references[:max_refs], 1):
-                    ref_mapping[i] = i  # Direct mapping for this paper's refs
-                    if isinstance(ref, dict):
-                        ref_title = ref.get('title', 'Unknown')
-                        ref_authors = ref.get('authors', [])
-                        author_str = ""
-                        if ref_authors:
-                            if len(ref_authors) == 1:
-                                author_str = ref_authors[0].split()[-1]  # Last name
-                            elif len(ref_authors) == 2:
-                                author_str = f"{ref_authors[0].split()[-1]} and {ref_authors[1].split()[-1]}"
-                            else:
-                                author_str = f"{ref_authors[0].split()[-1]} et al."
-                        ref_list.append(f"[{i}] {author_str}: {ref_title[:80]}" if author_str else f"[{i}] {ref_title[:80]}")
-                    elif isinstance(ref, str):
-                        ref_list.append(f"[{i}] {ref[:100]}")
-                ref_context = "\n".join(ref_list)
-            
-            # Create prompt that tells LLM to ONLY use citations that exist
-            prompt = f"""You are writing the LITERATURE SURVEY section for an IEEE conference research paper.
+            # Create prompt without citation requirements
+            prompt = f"""You are writing a LITERATURE SURVEY section for a research paper that synthesizes the related work and background.
 
 PAPER TITLE: {title}
 
@@ -363,34 +335,24 @@ ABSTRACT: {abstract}
 RELATED WORK CONTENT FROM PAPER:
 {survey_content}
 
-REFERENCES AVAILABLE IN THIS PAPER (use ONLY these):
-{ref_context if ref_context else "No external references available - focus on the paper's own contributions"}
+Generate a comprehensive LITERATURE SURVEY that:
+- Synthesizes the research landscape and context for this work
+- Discusses the evolution of research in this domain
+- Mentions specific techniques, algorithms, models, and approaches referenced in the paper
+- Highlights key developments and breakthroughs in the field
+- Identifies gaps in existing research that this paper addresses
+- Discusses methodologies and approaches used by prior work
+- Covers results, performance metrics, and achievements mentioned
+- Uses transitions like "In recent years", "Several studies", "Furthermore", "Building on this"
+- Ends with current challenges or limitations in existing approaches
 
 CRITICAL INSTRUCTIONS:
-- ONLY use citation numbers from the references listed above
-- If there are {len(references)} references, ONLY use citations [1] through [{len(references)}]
-- DO NOT create fake citations like [7] if only 3 references exist
-- If no external references available, write about the paper's own work and methodologies
-- Each citation used MUST correspond to a reference in the list above
-
-Generate a comprehensive LITERATURE SURVEY section following this style:
-- Write in dense, flowing academic prose (like IEEE papers)
-- Discuss multiple related works in each sentence using ONLY available citations
-- Cover the progression of research in this domain
-- Mention specific techniques, algorithms, models, and approaches
-- Include author names when introducing key work if available
-- Discuss results, accuracies, and performance metrics when mentioned
-- Connect different works showing how the field evolved
-- Write 2-3 substantial paragraphs with multiple citations per sentence
-- Use transitions like "In recent years", "Several studies", "Furthermore", "Additionally"
-- End with current challenges or limitations in existing approaches
-
-IMPORTANT:
-- Use ONLY citation numbers [1] through [{len(references)}] if references exist
-- Make it read like a real literature survey from an IEEE paper
-- Be specific about techniques and results
-- Keep the narrative flowing naturally from one work to another
-- If citations are limited, focus on synthesizing the paper's own contributions
+- DO NOT use citation numbers like [1], [2], [3] at all
+- Instead, refer to work descriptively: "Recent neural network approaches...", "Prior transformer-based methods..."
+- Write in flowing academic prose without citations
+- Be specific about techniques and concepts
+- Write 3-4 substantial paragraphs
+- Focus on synthesizing the research landscape
 
 Write ONLY the literature survey content (no headers or section titles):"""
 
@@ -409,8 +371,7 @@ Write ONLY the literature survey content (no headers or section titles):"""
                 'content': content,
                 'section_type': 'literature_survey',
                 'reference_count': len(references),
-                'max_citation': len(references),  # Track max citation used
-                'style': 'academic_ieee'
+                'style': 'narrative_synthesis'
             }
             
         except Exception as e:
@@ -452,11 +413,15 @@ Write ONLY the literature survey content (no headers or section titles):"""
             
             logger.info(f"✅ Generated {len(all_surveys)} surveys")
             
+            # Generate combined literature survey with citations
+            combined_survey = self.generate_combined_literature_survey(job_id, papers)
+            
             return {
                 'success': True,
                 'job_id': job_id,
                 'total_surveys': len(all_surveys),
-                'surveys': all_surveys
+                'surveys': all_surveys,
+                'combined_literature_survey': combined_survey
             }
             
         except Exception as e:
@@ -464,6 +429,130 @@ Write ONLY the literature survey content (no headers or section titles):"""
             return {
                 'success': False,
                 'error': str(e)
+            }
+    
+    def generate_combined_literature_survey(self, job_id: int, papers: List[Dict]) -> Dict:
+        """
+        Generate a single comprehensive literature survey combining all papers in a job.
+        This survey DOES include citations [1], [2], etc. referring to the processed papers.
+        
+        Args:
+            job_id: Job ID
+            papers: List of papers from get_papers_by_job
+        
+        Returns:
+            Combined survey with real citations
+        """
+        try:
+            logger.info(f"Generating combined literature survey for job {job_id}")
+            
+            # Build a reference list of all papers with their key info
+            paper_refs = []
+            paper_contexts = []
+            
+            for i, paper in enumerate(papers, 1):
+                if not paper.get('compiled_json_path') or not os.path.exists(paper['compiled_json_path']):
+                    continue
+                
+                try:
+                    with open(paper['compiled_json_path'], 'r', encoding='utf-8') as f:
+                        paper_data = json.load(f)
+                    
+                    metadata = paper_data.get('metadata', {})
+                    contributions = paper_data.get('contributions', {})
+                    
+                    # Build reference entry
+                    title = metadata.get('title', 'Unknown')
+                    authors = metadata.get('authors', [])
+                    author_str = authors[0] if authors else 'Unknown'
+                    if len(authors) > 1:
+                        author_str = f"{authors[0]} et al."
+                    
+                    paper_refs.append(f"[{i}] {author_str}: {title}")
+                    
+                    # Build context for each paper
+                    abstract = metadata.get('abstract', '')
+                    main_problem = contributions.get('main_problem', '')
+                    key_innovation = contributions.get('key_innovation', '')
+                    methodology = contributions.get('core_methodology', '')
+                    
+                    paper_contexts.append(f"""
+Paper [{i}]: {title}
+Authors: {', '.join(authors[:3])}
+Problem: {main_problem[:200]}
+Innovation: {key_innovation[:200]}
+Methodology: {methodology[:200]}
+""")
+                    
+                except Exception as e:
+                    logger.error(f"Error loading paper data: {e}")
+                    continue
+            
+            if not paper_refs:
+                return {
+                    'content': 'No papers available for combined survey.',
+                    'error': 'No valid papers',
+                    'section_type': 'combined_literature_survey'
+                }
+            
+            # Generate combined survey
+            refs_text = "\n".join(paper_refs)
+            contexts_text = "\n".join(paper_contexts)
+            
+            prompt = f"""You are writing a comprehensive LITERATURE SURVEY that synthesizes {len(paper_refs)} research papers on a common topic.
+
+PAPERS TO SURVEY (use these citations):
+{refs_text}
+
+PAPER DETAILS:
+{contexts_text[:6000]}
+
+Generate a comprehensive LITERATURE SURVEY section that:
+- Synthesizes the research landscape across all {len(paper_refs)} papers
+- Uses citations [1], [2], [3], etc. to refer to specific papers above
+- Discusses the evolution and progression of research shown in these papers
+- Identifies common themes, methodologies, and approaches
+- Highlights key innovations and contributions from each paper
+- Compares and contrasts different approaches where relevant
+- Discusses results and performance metrics mentioned
+- Identifies research gaps and future directions
+- Uses transitions to connect ideas: "Building on this work", "In contrast", "Similarly"
+- Write 4-5 substantial paragraphs
+
+CRITICAL INSTRUCTIONS:
+- USE citations [1] through [{len(paper_refs)}] to refer to the papers listed above
+- Each citation MUST correspond to a paper in the reference list
+- Be specific about which paper contributes what
+- Make connections between related papers
+- Write in flowing academic prose
+
+Write ONLY the literature survey content (no headers):"""
+
+            response = ollama.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                options={"temperature": 0.4, "num_predict": 1200}
+            )
+            
+            content = response['message']['content'].strip()
+            content = content.replace('LITERATURE SURVEY', '').replace('Literature Survey', '').strip()
+            
+            logger.info(f"✅ Generated combined literature survey with {len(paper_refs)} papers")
+            
+            return {
+                'content': content,
+                'references': paper_refs,
+                'paper_count': len(paper_refs),
+                'section_type': 'combined_literature_survey',
+                'job_id': job_id
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating combined survey: {e}", exc_info=True)
+            return {
+                'content': f"Error: {str(e)}",
+                'error': str(e),
+                'section_type': 'combined_literature_survey'
             }
 
 # Global instance

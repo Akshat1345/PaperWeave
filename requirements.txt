@@ -1,5 +1,6 @@
 # requirements.txt
-# Tested and optimized for Python 3.10
+# Production-Ready Dependencies for AI Research Assistant
+# Tested and optimized for Python 3.8+
 # Installation: pip install -r requirements.txt
 
 # ========== CORE DEPENDENCIES ==========
@@ -42,11 +43,43 @@ matplotlib==3.8.2  # For graph visualization
 nltk==3.8.1
 spacy==3.7.2
 
-# ========== PRODUCTION (Optional) ==========
+# ========== PRODUCTION DEPENDENCIES ==========
+
+# WSGI Server
 gunicorn==21.2.0
 
-# ========== DEVELOPMENT (Optional) ==========
+# Environment Variables
+python-dotenv==1.0.0
+
+# Caching (Optional but recommended)
+Flask-Caching==2.1.0
+redis==5.0.1
+
+# Rate Limiting (Optional but recommended)
+Flask-Limiter==3.5.0
+
+# CORS Support
+Flask-CORS==4.0.0
+
+# Monitoring & Logging
+python-json-logger==2.0.7
+
+# Security
+cryptography==41.0.7
+
+# ========== DEVELOPMENT DEPENDENCIES (Optional) ==========
 pytest==7.4.3
 pytest-cov==4.1.0
+black==23.12.1
+flake8==7.0.0
+mypy==1.8.0
+
+# ========== NOTES ==========
+# For production deployment:
+# 1. Install base requirements: pip install -r requirements.txt
+# 2. For development: pip install -r requirements.txt[dev]
+# 3. Ensure Ollama is installed separately
+# 4. Download spacy model: python -m spacy download en_core_web_sm
+# 5. Download NLTK data: python -m nltk.downloader punkt stopwords
 black==23.12.1
 flake8==6.1.0

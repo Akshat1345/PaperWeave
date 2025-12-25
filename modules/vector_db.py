@@ -50,6 +50,14 @@ class VectorDatabase:
         )
         
         logger.info(f"VectorDatabase initialized with {self.collection.count()} documents")
+
+    def refresh(self):
+        """Refresh collection handle so newly indexed documents are queryable without restart."""
+        try:
+            self.collection = self.client.get_collection(name=config.CHROMA_COLLECTION_NAME)
+            logger.info(f"Vector DB refreshed: {self.collection.count()} documents")
+        except Exception as e:
+            logger.warning(f"Vector DB refresh failed: {e}")
     
     def chunk_text(self, text: str, chunk_size: int = None, overlap: int = None) -> List[str]:
         """

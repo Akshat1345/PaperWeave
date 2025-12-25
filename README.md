@@ -1,45 +1,70 @@
 # 🔬 AI Research Assistant - Production Ready
 
-> **A state-of-the-art hybrid RAG system for automated research paper analysis with AI-generated literature surveys**
+> **A state-of-the-art hybrid RAG system for automated research paper analysis with AI-generated literature surveys and combined synthesis**
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status: Production](https://img.shields.io/badge/Status-Production%20Ready-green.svg)](#)
+[![Flask](https://img.shields.io/badge/Flask-3.0.0-black.svg)](https://flask.palletsprojects.com/)
+[![Ollama](https://img.shields.io/badge/Ollama-Powered-purple.svg)](https://ollama.ai)
+
+---
 
 ## ✨ Key Features
 
 ### 🤖 Advanced Hybrid RAG
 
 - **BM25 Keyword Retrieval** - Find papers with specific technical terms
-- **Semantic Search** - Understand meaning and concepts
-- **Reciprocal Rank Fusion** - Optimal combination of both methods
+- **Semantic Search** - Understand meaning and concepts with sentence transformers
+- **Reciprocal Rank Fusion** - Optimal combination of retrieval methods
 - **Cross-Encoder Reranking** - LLM-powered result refinement
 - **Query Expansion** - Enhanced query understanding
+- **Job-Based Isolation** - Query only papers from your current research session
 
 ### 📚 Automated Literature Surveys
 
-- IEEE-format surveys with 5 sections per paper
+#### Individual Paper Surveys (Citation-Free)
+
 - **Related Work & Context** - Historical positioning
-- **Methodology Survey** - Technical approach
+- **Methodology Analysis** - Technical approach deep-dive
 - **Key Contributions** - Innovation highlights
-- **Research Gaps** - Limitations and future work
-- **Context Analysis** - Field relevance
+- **Research Gaps** - Limitations and future directions
+- **Context Analysis** - Field relevance and impact
 
-### 🎨 Beautiful Web Interface
+#### **NEW!** Combined Literature Survey (With Citations)
 
-- Responsive design for all devices
-- Real-time processing status
-- Tab-based navigation
-- Q&A interface for paper queries
-- One-click result download
+- **Comprehensive Synthesis** - Single survey across all processed papers
+- **Real Academic Citations** - Proper [1], [2], [3] citation format
+- **Reference List** - Full author names and paper titles
+- **Thematic Integration** - Connects ideas across multiple papers
+- **Professional Output** - Ready for academic writing
 
-### 🔗 Knowledge Graph Integration
+### 🎨 Modern Web Interface
 
-- Automatic paper relationship mapping
-- Citation tracking
-- Author network analysis
-- Concept clustering
-- Visual relationship exploration
+- **Responsive Design** - Perfect on desktop, tablet, and mobile
+- **Real-Time Progress** - Live updates during paper processing
+- **Tab-Based Navigation** - Organized access to all features
+- **AI Q&A Interface** - Ask questions about your research corpus
+- **One-Click Download** - Export all results as ZIP
+- **Modern CSS** - Professional gradient themes and smooth animations
+
+### 🕸️ Knowledge Graph Integration
+
+- **Automatic Relationship Mapping** - Discover paper connections
+- **Citation Network Analysis** - Track influential works
+- **Concept Clustering** - Identify research themes
+- **Author Networks** - Collaboration patterns
+- **Interactive Visualization** - Explore relationships visually
+- **Centrality Analysis** - Find key papers in your domain
+
+### 🔒 Production-Ready Features
+
+- **Security Headers** - HSTS, XSS protection, CORS support
+- **Health Monitoring** - `/health` endpoint for load balancers
+- **Error Handling** - Comprehensive error pages and logging
+- **Environment Config** - Easy `.env` based configuration
+- **WSGI Support** - Gunicorn ready for production
+- **Logging System** - Structured logs with rotation
 
 ---
 
@@ -47,37 +72,50 @@
 
 ### Prerequisites
 
-- Python 3.10+
-- Ollama with a downloaded model
-- 4GB+ RAM
+- **Python 3.8+**
+- **Ollama** with llama3.2:latest model ([Download](https://ollama.ai))
+- **4GB+ RAM**
+- **10GB+ Disk Space**
 
 ### Installation
 
 ```bash
-# 1. Install dependencies
+# 1. Clone repository
+git clone <your-repo-url>
+cd ai-research-assistant
+
+# 2. Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 3. Install dependencies
 pip install -r requirements.txt
-python -m nltk.downloader punkt
+
+# 4. Download NLP models
+python -m nltk.downloader punkt stopwords
 python -m spacy download en_core_web_sm
 
-# 2. Start Ollama (separate terminal)
-ollama serve
+# 5. Install Ollama model
+ollama pull llama3.2:latest
 
-# 3. Run application
+# 6. Copy environment file
+cp .env.example .env
+
+# 7. Start application
 python app.py
 
-# 4. Open browser
+# 8. Open browser
 # http://localhost:5000
 ```
 
-### Or use quick start scripts
+### Quick Start Script
 
 ```bash
-# macOS/Linux
+# Make executable (first time only)
 chmod +x start.sh
-./start.sh
 
-# Windows
-start.bat
+# Run
+./start.sh
 ```
 
 ---
@@ -86,18 +124,69 @@ start.bat
 
 ### Step 1: Search Papers
 
-1. Enter research topic (e.g., "Deep Learning in Medical Imaging")
-2. Set number of papers (1-20)
-3. Click "Start Processing"
+1. Enter research topic (e.g., "transformer neural networks")
+2. Set number of papers (1-20, recommend 5-10 for first run)
+3. Click "🚀 Start Processing"
 
-### Step 2: Wait for Results
+### Step 2: Monitor Progress
 
-- **Step 1** (10-20%): Searching arXiv
-- **Step 2** (20-30%): Downloading PDFs
-- **Step 3** (30-95%): Compiling with LLM
-- **Step 4** (95-100%): Generating surveys
+The system processes papers in 3 stages:
 
-Processing time: 20-35 minutes for 10 papers
+- **Stage 1 (0-30%)**: Searching arXiv & downloading PDFs
+- **Stage 2 (30-90%)**: AI compilation with Ollama
+- **Stage 3 (90-100%)**: Generating literature surveys
+
+**Processing Time:** ~2-3 minutes per paper
+
+### Step 3: Explore Results
+
+Navigate through tabs:
+
+#### 📊 Overview
+
+- Total papers processed
+- Completion statistics
+- Indexed chunks count
+- Download all results button
+
+#### 📚 Combined Literature Survey **NEW!**
+
+- Comprehensive synthesis of all papers
+- Real citations [1], [2], [3]
+- Reference list with authors and titles
+- Professional academic format
+
+#### 🔬 Research Synthesis
+
+- Domain analysis
+- Common methodologies
+- Key findings consensus
+- Challenges and limitations
+
+#### 📄 Individual Papers & Surveys
+
+- Paper metadata and abstracts
+- Individual literature surveys (citation-free)
+- Key contributions
+- Section-wise analysis
+
+#### 🤖 AI Q&A
+
+- Ask questions about your corpus
+- Confidence scoring
+- Source citations
+- Related paper discovery
+
+### Step 4: Download Results
+
+Click "📥 Download All Results (ZIP)" to get:
+
+- All compiled JSONs
+- Literature surveys
+- Knowledge graph data
+- Processing metadata
+
+---
 
 ### Step 3: Explore Results
 
