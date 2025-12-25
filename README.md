@@ -1,299 +1,236 @@
-# 🔬 AI Research Assistant - Production Ready
+# 📚 PaperWeave
 
-> **A state-of-the-art hybrid RAG system for automated research paper analysis with AI-generated literature surveys and combined synthesis**
+> **Intelligent end-to-end system for research paper analysis with semantic-keyword hybrid retrieval, knowledge graph construction, and AI-powered literature synthesis**
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status: Production](https://img.shields.io/badge/Status-Production%20Ready-green.svg)](#)
 [![Flask](https://img.shields.io/badge/Flask-3.0.0-black.svg)](https://flask.palletsprojects.com/)
-[![Ollama](https://img.shields.io/badge/Ollama-Powered-purple.svg)](https://ollama.ai)
+[![Ollama](https://img.shields.io/badge/Ollama-LLM-purple.svg)](https://ollama.ai)
 
 ---
 
-## ✨ Key Features
+## 📖 What It Does
 
-### 🤖 Advanced Hybrid RAG
+PaperWeave automates the research paper literature review process:
 
-- **BM25 Keyword Retrieval** - Find papers with specific technical terms
-- **Semantic Search** - Understand meaning and concepts with sentence transformers
-- **Reciprocal Rank Fusion** - Optimal combination of retrieval methods
-- **Cross-Encoder Reranking** - LLM-powered result refinement
-- **Query Expansion** - Enhanced query understanding
-- **Job-Based Isolation** - Query only papers from your current research session
+1. **Fetch papers from arXiv** - Automatically download and extract PDFs
+2. **Parse & compile** - Extract sections, abstract, contributions using AI
+3. **Build indexes** - Create semantic vectors, keyword index, relationship graph
+4. **Generate surveys** - Automated literature surveys with citations
+5. **Answer questions** - Query your corpus with intelligent retrieval
+6. **Discover relationships** - Map connections between papers
 
-### 📚 Automated Literature Surveys
+This system is designed for researchers who need to process large numbers of papers and synthesize findings efficiently.
 
-#### Individual Paper Surveys (Citation-Free)
+---
 
-- **Related Work & Context** - Historical positioning
-- **Methodology Analysis** - Technical approach deep-dive
-- **Key Contributions** - Innovation highlights
-- **Research Gaps** - Limitations and future directions
-- **Context Analysis** - Field relevance and impact
+## 🎯 Key Features
 
-#### **NEW!** Combined Literature Survey (With Citations)
+### 📊 Paper Processing
 
-- **Comprehensive Synthesis** - Single survey across all processed papers
-- **Real Academic Citations** - Proper [1], [2], [3] citation format
-- **Reference List** - Full author names and paper titles
-- **Thematic Integration** - Connects ideas across multiple papers
-- **Professional Output** - Ready for academic writing
+- **Automatic Scraping** - Fetch papers from arXiv with topic search
+- **PDF Extraction** - Full text parsing with section identification
+- **Metadata Enrichment** - Title, authors, abstract, publication date
+- **Compilation** - Structured JSON with key sections and insights
 
-### 🎨 Modern Web Interface
+### 🔍 Intelligent Search (Hybrid RAG)
 
-- **Responsive Design** - Perfect on desktop, tablet, and mobile
-- **Real-Time Progress** - Live updates during paper processing
-- **Tab-Based Navigation** - Organized access to all features
-- **AI Q&A Interface** - Ask questions about your research corpus
-- **One-Click Download** - Export all results as ZIP
-- **Modern CSS** - Professional gradient themes and smooth animations
+- **Semantic Search** - Understand meaning using sentence transformers
+- **Keyword Search** - BM25 index for exact technical term matching
+- **Reciprocal Rank Fusion** - Optimal combination of both methods
+- **Cross-Encoder Reranking** - LLM-based result refinement
+- **Job Isolation** - Search only papers from current research session
+- **Runtime Refresh** - New papers instantly searchable (no restart)
 
-### 🕸️ Knowledge Graph Integration
+### 📖 Literature Synthesis
 
-- **Automatic Relationship Mapping** - Discover paper connections
-- **Citation Network Analysis** - Track influential works
-- **Concept Clustering** - Identify research themes
+- **Individual Surveys** - Per-paper analysis with methodology, contributions, gaps
+- **Combined Survey** - Comprehensive synthesis across all papers with citations
+- **Overall Survey** - Domain-level overview and trends
+- **Academic Format** - Proper [1], [2], [3] citation style with reference list
+- **Smart Caching** - Generated surveys cached to avoid recomputation
+
+### 🕸️ Knowledge Graph
+
+- **Relationship Mapping** - Automatic discovery of paper connections
+- **Citation Networks** - Track influential works and dependencies
+- **Concept Clustering** - Identify research themes and topics
 - **Author Networks** - Collaboration patterns
-- **Interactive Visualization** - Explore relationships visually
-- **Centrality Analysis** - Find key papers in your domain
+- **NetworkX-based** - Powerful graph algorithms for analysis
 
-### 🔒 Production-Ready Features
+### 💬 Q&A Interface
 
-- **Security Headers** - HSTS, XSS protection, CORS support
-- **Health Monitoring** - `/health` endpoint for load balancers
-- **Error Handling** - Comprehensive error pages and logging
-- **Environment Config** - Easy `.env` based configuration
-- **WSGI Support** - Gunicorn ready for production
-- **Logging System** - Structured logs with rotation
+- **Natural Language Queries** - Ask questions about papers
+- **Source Attribution** - Answers cite specific papers with confidence
+- **Related Discovery** - Find papers mentioned in answers
+- **Multi-stage Ranking** - Fusion + reranking for quality results
+- **Confidence Scoring** - High/medium/low confidence indicators
+
+### 🎨 Web Interface
+
+- **Responsive Design** - Works on desktop, tablet, mobile
+- **Real-time Progress** - Live processing status updates
+- **Tab-based Navigation** - Organized access to surveys, papers, Q&A
+- **One-click Download** - Export results as ZIP
+- **Modern UI** - Gradient themes, smooth animations
 
 ---
 
-## 🚀 Quick Start (5 minutes)
+## 🚀 Quick Start
 
-### Prerequisites
+### Requirements
 
-- **Python 3.8+**
-- **Ollama** with llama3.2:latest model ([Download](https://ollama.ai))
-- **4GB+ RAM**
-- **10GB+ Disk Space**
+- Python 3.8+
+- Ollama (with llama3.2 model)
+- 4GB+ RAM
+- 10GB+ disk space
 
-### Installation
+### Setup (5 minutes)
 
 ```bash
-# 1. Clone repository
-git clone <your-repo-url>
-cd ai-research-assistant
-
-# 2. Create virtual environment
+# 1. Clone and setup
+git clone <repo-url>
+cd paperweave
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 3. Install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 4. Download NLP models
+# 3. Download models
 python -m nltk.downloader punkt stopwords
 python -m spacy download en_core_web_sm
-
-# 5. Install Ollama model
 ollama pull llama3.2:latest
 
-# 6. Copy environment file
+# 4. Configure
 cp .env.example .env
 
-# 7. Start application
+# 5. Run
 python app.py
-
-# 8. Open browser
-# http://localhost:5000
+# Visit http://localhost:5000
 ```
 
-### Quick Start Script
+### Quick Usage
 
 ```bash
-# Make executable (first time only)
-chmod +x start.sh
+# Terminal 1: Start Ollama
+ollama serve
 
-# Run
-./start.sh
+# Terminal 2: Run application
+python app.py
+
+# Terminal 3: Test (optional)
+curl http://localhost:5000/health
 ```
 
 ---
 
-## 📖 Usage Guide
+## 📚 How to Use
 
-### Step 1: Search Papers
+### Step 1: Enter Topic
 
-1. Enter research topic (e.g., "transformer neural networks")
-2. Set number of papers (1-20, recommend 5-10 for first run)
-3. Click "🚀 Start Processing"
+1. Go to http://localhost:5000
+2. Enter research topic (e.g., "transformer neural networks")
+3. Select number of papers (5-10 recommended for first run)
+4. Click "Process"
 
-### Step 2: Monitor Progress
+### Step 2: Monitor Processing
 
-The system processes papers in 3 stages:
+The system processes in 3 stages:
 
-- **Stage 1 (0-30%)**: Searching arXiv & downloading PDFs
-- **Stage 2 (30-90%)**: AI compilation with Ollama
-- **Stage 3 (90-100%)**: Generating literature surveys
+- **Stage 1 (0-30%)** - Scraping arXiv, downloading PDFs
+- **Stage 2 (30-90%)** - Parsing PDFs, compiling structured data
+- **Stage 3 (90-100%)** - Indexing and survey generation
 
-**Processing Time:** ~2-3 minutes per paper
+Processing: ~2-3 minutes per paper
 
 ### Step 3: Explore Results
 
-Navigate through tabs:
+#### 📊 Overview Tab
 
-#### 📊 Overview
+- Paper count and statistics
+- Indexed chunks, knowledge graph size
+- Download button
 
-- Total papers processed
-- Completion statistics
-- Indexed chunks count
-- Download all results button
+#### 📖 Combined Survey Tab
 
-#### 📚 Combined Literature Survey **NEW!**
+- Comprehensive literature synthesis
+- Citations [1], [2], [3]
+- Reference list
+- Thematic integration
 
-- Comprehensive synthesis of all papers
-- Real citations [1], [2], [3]
-- Reference list with authors and titles
-- Professional academic format
+#### 📄 Papers Tab
 
-#### 🔬 Research Synthesis
-
-- Domain analysis
-- Common methodologies
-- Key findings consensus
-- Challenges and limitations
-
-#### 📄 Individual Papers & Surveys
-
-- Paper metadata and abstracts
-- Individual literature surveys (citation-free)
+- Individual paper surveys
+- Methodology analysis
 - Key contributions
-- Section-wise analysis
+- Research gaps
 
-#### 🤖 AI Q&A
+#### 🤖 Q&A Tab
 
-- Ask questions about your corpus
-- Confidence scoring
-- Source citations
-- Related paper discovery
+- Ask natural language questions
+- Get cited answers with confidence
+- Discover related papers
+- Source attribution
 
-### Step 4: Download Results
+#### 🕸️ Knowledge Graph
 
-Click "📥 Download All Results (ZIP)" to get:
+- Visual paper relationships
+- Citation networks
+- Author collaborations
 
-- All compiled JSONs
-- Literature surveys
+### Step 4: Download
+
+Click download to get:
+
+- Compiled JSON files
+- All surveys (individual + combined)
 - Knowledge graph data
 - Processing metadata
 
 ---
 
-### Step 3: Explore Results
-
-- **Overview Tab**: View statistics
-- **Papers Tab**: Read auto-generated surveys
-- **RAG Q&A Tab**: Ask questions about papers
-
-### Step 4: Ask Questions
-
-Examples:
-
-- "What are the main methodologies used?"
-- "What challenges are mentioned?"
-- "Compare the different approaches"
-- "What future research directions are suggested?"
-
----
-
-## 🎯 Why Hybrid RAG?
-
-Traditional systems use only semantic search, which has limitations:
-
-- ❌ Misses exact keyword matches
-- ❌ Can't find papers with specific technical terms
-- ❌ Poor for highly technical queries
-
-This system uses **Hybrid Approach**:
-
-- ✅ BM25 finds exact technical terms
-- ✅ Semantic search finds conceptual matches
-- ✅ RRF optimally combines both
-- ✅ Cross-encoder provides final accuracy
-
-**Result**: ~85% recall, ~70% precision (vs ~60% for semantic alone)
-
----
-
-## 📊 Performance
-
-### Processing Speed
-
-| Task                | Time          |
-| ------------------- | ------------- |
-| Scraping 10 papers  | 3-5 min       |
-| Compiling 10 papers | 10-15 min     |
-| Vector indexing     | 3-5 min       |
-| Survey generation   | 5-10 min      |
-| **Total**           | **20-35 min** |
-
-### Query Performance
-
-| Component       | Speed        |
-| --------------- | ------------ |
-| BM25 search     | <100 ms      |
-| Semantic search | <500 ms      |
-| RRF fusion      | <50 ms       |
-| Cross-encoder   | 2-3 sec      |
-| **Total query** | **~3-4 sec** |
-
-### Storage (per paper)
-
-- PDF: ~2 MB
-- Compiled JSON: ~0.5 MB
-- Embeddings: ~50 KB
-- Survey: ~20 KB
-- **Total: ~2.6 MB**
-
----
-
-## 🏗️ Architecture
-
-### System Components
-
-```
-┌─────────────────────────────────────────────────┐
-│         AI Research Assistant                   │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  Frontend (HTML/JS) ◄──► Flask API             │
-│                         ├─ RAG Engine          │
-│                         ├─ Survey Generator    │
-│                         ├─ Vector DB           │
-│                         └─ Knowledge Graph     │
-│                                                 │
-│  Data Storage:                                  │
-│  ├─ SQLite Database (metadata + surveys)       │
-│  ├─ ChromaDB (vector embeddings)               │
-│  ├─ File system (PDFs, JSON)                   │
-│  └─ NetworkX (knowledge graph)                 │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
+## 🏗️ System Architecture
 
 ### Data Flow
 
 ```
-Papers → Scraper → Compiler → Vector Index
-                          ├─ Vector DB
-                          ├─ Knowledge Graph
-                          └─ Survey Generator
-                                    ↓
-                          Database Storage
-                                    ↓
-                    User Query ← RAG Engine
-                          ↓
-                    Answer + Citations
+arXiv API
+   ↓
+Scraper (PDF download)
+   ↓
+Compiler (parse sections, extract text)
+   ↓
+SQLite Database (papers + sections)
+   ↓
+┌──────────────────────────────────────┐
+│ Parallel Indexing:                   │
+│ ├─ ChromaDB (semantic embeddings)   │
+│ ├─ BM25 (keyword index)             │
+│ └─ NetworkX (knowledge graph)       │
+└──────────────────────────────────────┘
+   ↓
+Survey Generator (Ollama)
+   ↓
+Cache (individual + combined surveys)
+   ↓
+User Interface & API
+   ↓
+RAG Query Engine (hybrid retrieval)
 ```
+
+### Components
+
+| Component           | Purpose                     | Technology                     |
+| ------------------- | --------------------------- | ------------------------------ |
+| **Scraper**         | Fetch papers from arXiv     | arXiv API, PyMuPDF             |
+| **Compiler**        | Parse PDF → structured data | PyMuPDF, NLTK, spaCy           |
+| **Vector DB**       | Semantic embeddings         | ChromaDB, SentenceTransformers |
+| **BM25 Index**      | Keyword retrieval           | In-memory inverted index       |
+| **Knowledge Graph** | Paper relationships         | NetworkX                       |
+| **Survey Gen**      | Generate literature reviews | Ollama (llama3.2)              |
+| **RAG Engine**      | Hybrid query processing     | Custom fusion logic            |
+| **Web Interface**   | User interaction            | Flask, Jinja2, HTML/CSS        |
 
 ---
 
@@ -301,27 +238,23 @@ Papers → Scraper → Compiler → Vector Index
 
 Edit `config.py` to customize:
 
-### RAG Parameters
-
 ```python
-RAG_TOP_K_RESULTS = 15              # Number of final results
-RAG_SIMILARITY_THRESHOLD = 0.35     # Minimum similarity score
-RAG_INITIAL_RETRIEVAL = 30          # Initial retrieval count
-RAG_TEMPERATURE = 0.2               # LLM randomness (lower = focused)
-```
+# RAG tuning
+RAG_TOP_K_RESULTS = 15              # Final results count
+RAG_SIMILARITY_THRESHOLD = 0.35     # Minimum similarity
+RAG_TEMPERATURE = 0.2               # LLM randomness
 
-### Chunking Strategy
-
-```python
+# Indexing
 CHUNK_SIZE = 600                    # Words per chunk
 CHUNK_OVERLAP = 100                 # Overlap between chunks
-```
 
-### Model Selection
+# Models
+OLLAMA_MODEL = "llama3.2:latest"
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
-```python
-OLLAMA_MODEL = "llama3.2:latest"    # Change to your model
-EMBEDDING_MODEL = "all-MiniLM-L6-v2" # Sentence Transformer
+# Server
+FLASK_HOST = "0.0.0.0"
+FLASK_PORT = 5000
 ```
 
 ---
@@ -329,108 +262,112 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2" # Sentence Transformer
 ## 📁 Project Structure
 
 ```
-ai-research-assistant/
-├── app.py                          # Main Flask application
-├── config.py                       # Configuration
-├── requirements.txt                # Dependencies
-├── start.sh / start.bat            # Quick start scripts
+.
+├── app.py                   # Flask application
+├── config.py               # Configuration
+├── requirements.txt        # Dependencies
+├── README.md              # This file
 │
 ├── modules/
-│   ├── hybrid_rag.py              # ⭐ Hybrid RAG engine
-│   ├── survey_generator.py        # ⭐ Survey generation
-│   ├── compiler.py                # PDF compilation
-│   ├── scraper.py                 # arXiv scraping
-│   ├── database.py                # SQLite management
-│   ├── vector_db.py               # ChromaDB indexing
-│   ├── knowledge_graph.py         # Paper relationships
-│   └── utils.py                   # Utilities
+│   ├── hybrid_rag.py      # ⭐ RAG engine (BM25 + semantic)
+│   ├── survey_generator.py # ⭐ Survey generation
+│   ├── scraper.py         # Paper fetching
+│   ├── compiler.py        # PDF parsing
+│   ├── database.py        # SQLite management
+│   ├── vector_db.py       # ChromaDB indexing
+│   ├── knowledge_graph.py # Relationship mapping
+│   └── utils.py           # Helpers
 │
 ├── templates/
-│   ├── index.html                 # Main search page
-│   └── results.html               # Results display
+│   ├── index.html         # Search interface
+│   └── results.html       # Results display
 │
 ├── data/
-│   └── pdfs/                      # Downloaded papers
+│   └── pdfs/              # Downloaded papers
 │
-├── processed/
-│   ├── compiled/                  # Compiled JSON files
-│   ├── chroma_db/                 # Vector embeddings
-│   ├── images/                    # Extracted images
-│   └── cache/                     # Computation cache
-│
-├── SETUP_GUIDE.md                 # Installation guide
-├── TECHNICAL_DOCS.md              # Architecture docs
-├── QUICK_REFERENCE.md             # Command reference
-└── README.md                      # This file
+└── processed/
+    ├── compiled/          # Parsed JSON files
+    ├── chroma_db/         # Vector embeddings
+    └── cache/             # Computation cache
 ```
 
 ---
 
-## 🔗 API Endpoints
+## 🔗 API Reference
 
 ### Processing
 
 ```
 POST /start_processing
-  Process papers by topic
+  Body: {"topic": "...", "num_papers": 10}
+  Returns: job_id, progress
+
+GET /status?job_id=123
+  Returns: stage, progress, processed_count
 
 POST /rag/reindex
-  Reindex all papers into vector DB
-
-GET /status
-  Get current job status
+  Force reindex all papers
 ```
 
-### RAG Queries
+### Querying
 
 ```
 POST /rag/query
-  Answer question about papers
-  Body: {"question": "...", "paper_id": 1 (optional)}
+  Body: {"question": "...", "job_id": 1 (optional)}
+  Returns: answer, sources, confidence, retrieval_stats
 
 GET /rag/index_status
-  Get vector DB and knowledge graph statistics
+  Returns: bm25_docs, vector_chunks, kg_nodes, kg_edges
 ```
 
 ### Results
 
 ```
 GET /results
-  Get results for latest job
+  Get latest results
 
 GET /results/comprehensive
-  Get complete results with surveys
+  Get all surveys + metadata
 
-GET /jobs/history
-  Get processing job history
+POST /download?job_id=123
+  Download ZIP of all results
 ```
 
 ### Surveys
 
 ```
-POST /surveys/generate
-  Generate surveys for papers
+GET /surveys/combined/<job_id>
+  Get combined literature survey
 
-GET /surveys/<paper_id>
-  Get survey for specific paper
+GET /surveys/overall
+  Get overall domain survey
 
-GET /surveys/job/<job_id>
-  Get all surveys for job
+POST /surveys/generate?job_id=123
+  Force regenerate surveys
+```
+
+### Utilities
+
+```
+GET /health
+  Health check
+
+GET /jobs/history
+  Job history list
 ```
 
 ---
 
-## 🎓 Usage Examples
+## 🎓 Examples
 
-### Example 1: Basic Literature Review
+### Example 1: Quick Review
 
 ```
-1. Search: "Machine Learning in Healthcare"
-2. Wait for completion
-3. View generated surveys
-4. Query: "What datasets are used?"
-5. Query: "Compare different ML approaches"
-6. Download all results
+1. Topic: "Graph Neural Networks"
+2. Papers: 5
+3. Wait for completion
+4. Read combined survey
+5. Ask: "What are the main applications?"
 ```
 
 ### Example 2: Research Gap Analysis
@@ -438,8 +375,8 @@ GET /surveys/job/<job_id>
 ```
 1. Process papers on topic
 2. Query: "What challenges remain?"
-3. Query: "What future work is suggested?"
-4. Compile findings
+3. Query: "What future directions are suggested?"
+4. Analyze combined survey
 5. Identify research opportunities
 ```
 
@@ -447,9 +384,9 @@ GET /surveys/job/<job_id>
 
 ```
 1. Search for papers
-2. Query: "What are the main methodologies?"
-3. Query: "Compare deep learning vs traditional ML"
-4. Extract comparison table
+2. Query: "Compare different training approaches"
+3. Query: "What datasets are used?"
+4. Extract comparison from survey
 5. Use in literature review
 ```
 
@@ -457,254 +394,213 @@ GET /surveys/job/<job_id>
 
 ## 🐛 Troubleshooting
 
-### RAG Returns No Results
+### "No Relevant Information Found" but Works After Restart
+
+**Problem**: New papers indexed but RAG doesn't find them immediately.
+
+**Solution**: System auto-refreshes indexes when needed. If issues persist:
 
 ```bash
-# 1. Verify papers are indexed
-curl http://localhost:5000/rag/index_status
-
-# 2. Reindex all papers
+# Manual reindex
 curl -X POST http://localhost:5000/rag/reindex
 
-# 3. Check logs
-tail -f research_assistant.log
+# Check index status
+curl http://localhost:5000/rag/index_status
 
-# 4. Lower similarity threshold in config.py
-RAG_SIMILARITY_THRESHOLD = 0.25
+# Review logs
+tail -f research_assistant.log
 ```
 
 ### Surveys Not Generating
 
 ```bash
-# 1. Ensure Ollama is running
+# Verify Ollama running
 ollama ps
 
-# 2. Check available models
+# List available models
 ollama list
 
-# 3. Pull a model if needed
+# Pull model if needed
 ollama pull llama3.2
 
-# 4. Check logs for errors
-tail -f research_assistant.log
+# Check model config
+grep OLLAMA_MODEL config.py
 ```
 
 ### System Won't Start
 
 ```bash
-# 1. Verify Python version
-python --version  # Should be 3.10+
+# Python version check
+python --version  # Should be 3.8+
 
-# 2. Check dependencies
-pip list | grep ollama
-
-# 3. Reinstall dependencies
+# Reinstall dependencies
 pip install -r requirements.txt --force-reinstall
 
-# 4. Clear database and restart
-rm research_assistant.db
-python app.py
+# Clear corrupt cache
+rm -rf processed/cache/*
+
+# Start fresh if needed
+rm research_assistant.db && python app.py
 ```
+
+### Memory Issues
+
+```bash
+# Reduce batch size (process 5 papers instead of 20)
+
+# Clear cache periodically
+rm -rf processed/cache/*
+
+# Check resource usage
+top  # or Activity Monitor on macOS
+
+# Adjust chunk size in config.py
+CHUNK_SIZE = 400  # was 600
+```
+
+### Slow Performance
+
+```bash
+# Reduce result count
+RAG_TOP_K_RESULTS = 10  # was 15
+
+# Use lighter embedding model
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+
+# Check database size
+du -h research_assistant.db
+```
+
+---
+
+## 🔬 Technical Details
+
+### Hybrid Retrieval (Why?)
+
+**The Problem**: Single retrieval methods have tradeoffs
+
+- Keyword-only: Misses conceptual matches
+- Semantic-only: Poor for technical terms, slower
+
+**The Solution**: Combine both
+
+- BM25 catches exact technical terms (fast, precise)
+- Semantic search catches concepts (slower, recall)
+- RRF fusion optimally combines rankings
+- Cross-encoder reranks for final quality
+
+**Result**: ~85% recall, ~70% precision (vs ~60% for semantic alone)
+
+### Knowledge Graph Benefits
+
+- Discovers paper dependencies
+- Identifies influential works
+- Finds conceptual clusters
+- Reveals research trends
+- Suggests related reading
+
+### Survey Generation Strategy
+
+1. Extract key points from papers
+2. Identify common themes
+3. Detect research gaps
+4. Generate comprehensive text with citations
+5. Cache result to avoid recomputation
+
+---
+
+## 📊 Performance
+
+### Typical Processing Time
+
+| Task              | Time          |
+| ----------------- | ------------- |
+| Scrape 10 papers  | 3-5 min       |
+| Compile 10 papers | 10-15 min     |
+| Build indexes     | 3-5 min       |
+| Generate surveys  | 5-10 min      |
+| **Total**         | **20-35 min** |
+
+### Query Performance
+
+| Component       | Speed    |
+| --------------- | -------- |
+| BM25 search     | <100 ms  |
+| Semantic search | <500 ms  |
+| Fusion          | <50 ms   |
+| Reranking       | 2-3 sec  |
+| **Total**       | ~3-4 sec |
+
+### Storage per Paper
+
+- PDF: ~2 MB
+- Compiled: ~0.5 MB
+- Embeddings: ~50 KB
+- Surveys: ~20 KB
+- **Total: ~2.6 MB**
 
 ---
 
 ## 📚 Documentation
 
-- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Complete setup and configuration
-- **[TECHNICAL_DOCS.md](TECHNICAL_DOCS.md)** - Architecture, algorithms, and design
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Command reference and workflows
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What was built
+- [SETUP_GUIDE.md](SETUP_GUIDE.md) - Detailed setup
+- [TECHNICAL_DOCS.md](TECHNICAL_DOCS.md) - Architecture & algorithms
+- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Command reference
+- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Implementation details
+- [DEVELOPER_SUMMARY.md](DEVELOPER_SUMMARY.md) - Development notes
 
 ---
 
-## 🔐 Privacy & Data
+## 🔒 Privacy & Security
 
-✅ **Completely Local**
-
-- All data stored locally
-- No cloud services
-- No tracking or telemetry
-- You own all data
-
-✅ **Secure**
-
-- SQL injection prevention
-- Input validation
-- Resource limits
-- Error handling
+- ✅ **100% Local** - No cloud services, all data local
+- ✅ **Secure** - SQL injection prevention, input validation
+- ✅ **Open Source** - Full source code transparency
+- ✅ **No Telemetry** - No tracking or usage collection
 
 ---
 
-## 🤝 Contributing
-
-This is an academic project. To contribute or modify:
-
-1. Understand the architecture (see TECHNICAL_DOCS.md)
-2. Modify relevant modules
-3. Test thoroughly
-4. Document changes
-
----
-
-## 📄 License
-
-MIT License - feel free to use and modify
-
----
-
-## 🙏 Acknowledgments
+## 🙏 Credits
 
 Built with:
 
-- **Ollama** - Local LLM inference
+- **Ollama** - Local LLM
 - **ChromaDB** - Vector database
 - **SentenceTransformers** - Embeddings
-- **NetworkX** - Knowledge graphs
+- **NetworkX** - Graph algorithms
 - **Flask** - Web framework
 - **PyMuPDF** - PDF processing
 - **arXiv API** - Paper search
 
 ---
 
-## 🎯 Next Steps
+## 📝 License
 
-### To Get Started
-
-1. Install dependencies: `pip install -r requirements.txt`
-2. Start Ollama: `ollama serve`
-3. Run application: `python app.py`
-4. Open browser: `http://localhost:5000`
-
-### To Learn More
-
-- Read **SETUP_GUIDE.md** for detailed setup
-- Read **TECHNICAL_DOCS.md** for architecture
-- Check **QUICK_REFERENCE.md** for commands
-- Explore **config.py** for customization
-
-### To Use Effectively
-
-- Start with 3-5 papers for testing
-- Monitor logs with `tail -f research_assistant.log`
-- Adjust RAG parameters if needed
-- Download results after processing
+MIT License - Use freely for research and commercial purposes
 
 ---
 
-## 📞 Support
-
-### Common Issues
-
-- See troubleshooting section above
-- Check research_assistant.log
-- Verify Ollama is running
-- Ensure papers are compiled
-
-### Getting Help
-
-1. Check documentation
-2. Review error logs
-3. Test with simpler queries
-4. Reduce to smaller batch
-
----
-
-## 📊 Roadmap
-
-### Completed ✅
-
-- Hybrid RAG (BM25 + Semantic + RRF)
-- Literature survey generation
-- Web interface
-- Knowledge graph
-- Vector indexing
-
-### Possible Future Enhancements
-
-- Multi-user support
-- Async processing
-- GPU acceleration
-- Graph visualization UI
-- Real-time indexing
-- Paper recommendation engine
-- PDF annotation
-- Batch export options
-
----
-
-## 💡 Why This System?
-
-### Problems It Solves
-
-1. **Literature review bottleneck** - Auto-generates surveys
-2. **Poor search results** - Hybrid RAG beats keyword alone
-3. **Manual citation tracking** - Knowledge graph handles this
-4. **Context understanding** - LLM-powered Q&A
-5. **Data privacy** - Everything stays local
-
-### Technical Innovation
-
-- **Hybrid RAG** combines BM25 + semantic search optimally
-- **RRF** fusion proven to outperform single methods
-- **Cross-encoder reranking** improves accuracy
-- **Survey generation** saves hours of manual work
-- **Knowledge graph** discovers connections
-
----
-
-## ✨ Features Highlight
-
-| Feature              | Benefit                             |
-| -------------------- | ----------------------------------- |
-| **Hybrid RAG**       | Best accuracy for academic papers   |
-| **BM25 Search**      | Finds technical terms perfectly     |
-| **Semantic Search**  | Understands meaning and context     |
-| **RRF Fusion**       | Combines methods optimally          |
-| **Auto Surveys**     | Saves hours per paper               |
-| **Knowledge Graph**  | Discovers paper relationships       |
-| **Web Interface**    | Easy to use, beautiful design       |
-| **Local Processing** | Privacy, speed, no cloud dependency |
-
----
-
-## 🚀 Ready to Use?
+## 🚀 Getting Started
 
 ```bash
-# 1. Clone/download
-cd ai-research-assistant
-
-# 2. Install
+# 1. Setup (5 min)
+git clone <repo>
+cd paperweave
 pip install -r requirements.txt
+ollama pull llama3.2:latest
 
-# 3. Start Ollama
-ollama serve
-
-# 4. Run app
+# 2. Run
 python app.py
 
-# 5. Open browser
+# 3. Open browser
 # http://localhost:5000
 
-# 6. Search for papers!
+# 4. Search for papers!
 ```
 
+**Start analyzing your research corpus now** 📖🔬
+
 ---
 
-**Version**: 2.0 (Hybrid RAG + Surveys)
-**Status**: ✅ Production Ready
+**Version**: 2.1
 **Last Updated**: December 2025
-
-**Built with ❤️ for academic research**
-
----
-
-### Questions or Issues?
-
-- Check documentation files
-- Review error logs
-- See troubleshooting section
-- Modify config.py as needed
-
-### Ready to Revolutionize Your Literature Reviews? 📚🔬
-
-Start now: `python app.py`
